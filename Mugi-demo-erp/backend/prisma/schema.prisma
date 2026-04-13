@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("employee")
+  createdAt DateTime @default(now())
+
+  @@map("users")
+}
+
+model Lead {
+  id         Int     @id @default(autoincrement())
+  name       String
+  email      String?
+  phone      String?
+  status     String  @default("New")
+  assignedTo Int?    @map("assigned_to")
+
+  @@map("leads")
+}
+
+model Customer {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String?
+  phone     String?
+  gstNumber String? @map("gst_number")
+
+  @@map("customers")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  module    String
+  action    String
+  targetId  Int?
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+model Invoice {
+  id           Int      @id @default(autoincrement())
+  invoiceNo    String   @unique @map("invoice_no")
+  customerName String   @map("customer_name")
+  subtotal     Decimal  @db.Decimal(10, 2)
+  gstPercent   Decimal  @db.Decimal(5, 2) @map("gst_percent")
+  gstAmount    Decimal  @db.Decimal(10, 2) @map("gst_amount")
+  total        Decimal  @db.Decimal(10, 2)
+  status       String   @default("Unpaid")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("invoices")
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  invoiceNo    String?  @map("invoice_no") @db.VarChar(50)
+  customerName String?  @map("customer_name") @db.VarChar(100)
+  amount       Decimal  @db.Decimal(10, 2)
+  status       String   @default("Pending") @db.VarChar(50)
+  paymentDate  DateTime @default(now()) @map("payment_date")
+
+  @@map("payments")
+}
+
+model SyncQueue {
+  id          Int      @id @default(autoincrement())
+  module      String
+  recordId    Int      @map("record_id")
+  status      String   @default("Queued")
+  syncType    String   @default("Tally")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("sync_queue")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  productName String   @map("product_name")
+  sku         String   @unique
+  quantity    Int      @default(0)
+  minStock    Int      @default(10) @map("min_stock")
+  price       Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("products")
+}
+
+model Vendor {
+  id         Int      @id @default(autoincrement())
+  vendorName String   @map("vendor_name")
+  phone      String?
+  email      String?
+
+  @@map("vendors")
+}
+
+model PurchaseRequest {
+  id              Int      @id @default(autoincrement())
+  productName     String   @map("product_name")
+  sku             String
+  requiredQty     Int      @map("required_qty")
+  vendorSuggestion String? @map("vendor_suggestion")
+  status          String   @default("Pending")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("purchase_requests")
+}
+
+model Employee {
+  id     Int      @id @default(autoincrement())
+  name   String   @db.VarChar(100)
+  email  String   @db.VarChar(100)
+  role   String   @db.VarChar(50)
+  salary Decimal  @db.Decimal(10, 2)
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         Int      @id @default(autoincrement())
+  employeeId Int      @map("employee_id")
+  date       DateTime @default(now()) @db.Date
+  status     String   @db.VarChar(20)
+
+  @@map("attendance")
+}
+
+model Task {
+  id         Int     @id @default(autoincrement())
+  title      String  @db.VarChar(200)
+  assignedTo Int     @map("assigned_to")
+  status     String  @default("Pending") @db.VarChar(50)
+
+  @@map("tasks")
+}
+
+model Payroll {
+  id          Int      @id @default(autoincrement())
+  employeeId  Int      @map("employee_id")
+  month       String   @db.VarChar(20)
+  year        Int
+  basicSalary Decimal  @map("basic_salary") @db.Decimal(10, 2)
+  deductions  Decimal  @db.Decimal(10, 2)
+  bonus       Decimal  @db.Decimal(10, 2)
+  netSalary   Decimal  @map("net_salary") @db.Decimal(10, 2)
+  status      String   @default("Pending") @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("payroll")
+}
+
+
