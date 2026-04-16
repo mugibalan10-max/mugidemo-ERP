@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 
 /**
  * Sidebar Component for Mugi Demo ERP
@@ -7,18 +8,28 @@ import { Link, useLocation } from 'react-router-dom';
  */
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const userRole = localStorage.getItem('role') || 'employee';
+
+  const handleLogout = () => {
+    localStorage.removeItem('role');
+    localStorage.removeItem('token'); // Assuming token is also stored
+    navigate('/login');
+  };
 
   const menuItems = [
-    { name: 'Dashboard', icon: '📊', path: '/' },
-    { name: 'Leads', icon: '🎯', path: '/leads' },
-    { name: 'Customers', icon: '👥', path: '/customers' },
-    { name: 'Invoice', icon: '📄', path: '/invoices' },
-    { name: 'Inventory', icon: '📦', path: '/inventory' },
-    { name: 'Tally Sync', icon: '🔄', path: '/tally-dashboard' },
-    { name: 'Tasks', icon: '📋', path: '/tasks' },
-    { name: 'Payroll', icon: '🏦', path: '/payroll' },
-    { name: 'Reports', icon: '📊', path: '/reports' },
-  ];
+    { name: 'Dashboard', icon: '📊', path: '/', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
+    { name: 'Leads', icon: '🎯', path: '/leads', roles: ['admin', 'sales'] },
+    { name: 'Customers', icon: '👥', path: '/customers', roles: ['admin', 'sales'] },
+    { name: 'Invoice', icon: '📄', path: '/invoices', roles: ['admin', 'sales'] },
+    { name: 'Inventory', icon: '📦', path: '/inventory', roles: ['admin', 'inventory'] },
+    { name: 'Tally Sync', icon: '🔄', path: '/tally-dashboard', roles: ['admin'] },
+    { name: 'Tasks', icon: '📋', path: '/tasks', roles: ['admin', 'employee', 'hr'] },
+    { name: 'Employees', icon: '👷', path: '/employees', roles: ['admin', 'hr'] },
+    { name: 'Payroll', icon: '🏦', path: '/payroll', roles: ['admin', 'hr'] },
+    { name: 'Reports', icon: '📊', path: '/reports', roles: ['admin', 'hr'] },
+  ].filter(item => item.roles.includes(userRole));
 
   const sidebarStyle = {
     width: "240px",
@@ -74,17 +85,18 @@ export default function Sidebar() {
         <div style={{ 
           width: "32px", 
           height: "32px", 
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
+          background: "linear-gradient(135deg, #6366f1 0%, #10b981 100%)",
           borderRadius: "8px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "white",
-          WebkitTextFillColor: "initial"
+          WebkitTextFillColor: "initial",
+          boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)"
         }}>
-          M
+          Z
         </div>
-        Mugi Demo ERP
+        Zen Finance
       </div>
 
       <nav style={{ flex: 1 }}>
@@ -141,7 +153,7 @@ export default function Sidebar() {
         }}>
           JD
         </div>
-        <div style={{ overflow: "hidden" }}>
+        <div style={{ overflow: "hidden", flex: 1 }}>
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             John Doe
           </p>
@@ -149,7 +161,36 @@ export default function Sidebar() {
             Administrator
           </p>
         </div>
+        
+        {/* Logout Button */}
+        <button 
+          onClick={handleLogout}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            padding: '8px',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(244, 63, 94, 0.1)";
+            e.currentTarget.style.color = "#f43f5e";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#94a3b8";
+          }}
+          title="Logout"
+        >
+          <LogOut size={18} />
+        </button>
       </div>
     </div>
   );
 }
+

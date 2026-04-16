@@ -23,6 +23,13 @@ export default function Customers() {
       const res = await fetch('http://localhost:5000/api/customers');
       const data = await res.json();
       
+      if (!Array.isArray(data)) {
+        console.error("Customers data is not an array:", data);
+        setCustomers([]);
+        setLoading(false);
+        return;
+      }
+
       // For each customer, fetch their balance
       const customerWithBalances = await Promise.all(data.map(async (cust) => {
         try {
@@ -37,7 +44,9 @@ export default function Customers() {
       setCustomers(customerWithBalances);
       setLoading(false);
     } catch (err) {
-      console.error("Failed to fetch customers");
+      console.error("Failed to fetch customers:", err);
+      setCustomers([]);
+      setLoading(false);
     }
   };
 

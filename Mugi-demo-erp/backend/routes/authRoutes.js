@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const prisma = require('../lib/prisma');
+const { prisma } = require('../lib/prisma');
 require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key';
@@ -29,7 +29,7 @@ router.post('/login', async (req, res) => {
 
         // Generate Token
         const token = jwt.sign(
-            { id: user.id, role: user.role },
+            { id: user.id, role: user.roleName },
             JWT_SECRET,
             { expiresIn: '8h' }
         );
@@ -40,13 +40,17 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.roleName
             }
         });
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: "Server error during login" });
+        console.error("DEBUG: Login Error:", err);
+        res.status(500).json({ 
+            error: "Server error during login", 
+            details: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 

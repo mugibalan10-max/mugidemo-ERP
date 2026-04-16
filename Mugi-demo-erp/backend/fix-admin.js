@@ -1,4 +1,4 @@
-const prisma = require('./lib/prisma');
+const { prisma } = require('./lib/prisma');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
@@ -20,7 +20,7 @@ async function fixAdmin() {
                 name: "Mugi Admin",
                 email: email,
                 password: hashedPassword,
-                role: "admin"
+                roleName: "admin"
             }
         });
 

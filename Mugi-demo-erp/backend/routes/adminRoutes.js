@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const prisma = require('../lib/prisma');
+const { prisma } = require('../lib/prisma');
 require('dotenv').config();
 
 // GET all users (Admin only view)
@@ -12,7 +12,7 @@ router.get('/users', async (req, res) => {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
+                roleName: true,
                 createdAt: true
             },
             orderBy: {
@@ -49,13 +49,13 @@ router.post('/users', async (req, res) => {
                 name,
                 email,
                 password: hashedPassword,
-                role: role || 'employee'
+                roleName: role || 'employee'
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
-                role: true
+                roleName: true
             }
         });
 

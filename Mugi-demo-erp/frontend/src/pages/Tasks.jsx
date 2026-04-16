@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { useNavigate } from 'react-router-dom';
 
 export default function Tasks() {
-  const navigate = useNavigate();
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [newTask, setNewTask] = useState({ title: '', assigned_to: '' });
@@ -23,7 +21,7 @@ export default function Tasks() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchData = async () => {
     try {
@@ -33,11 +31,27 @@ export default function Tasks() {
       ]);
       const taskData = await taskRes.json();
       const empData = await empRes.json();
-      setTasks(taskData);
-      setEmployees(empData);
+      
+      if (Array.isArray(taskData)) {
+        setTasks(taskData);
+      } else {
+        console.error("Tasks data is not an array:", taskData);
+        setTasks([]);
+      }
+
+      if (Array.isArray(empData)) {
+        setEmployees(empData);
+      } else {
+        console.error("Employees data is not an array:", empData);
+        setEmployees([]);
+      }
+      
       setLoading(false);
     } catch (err) {
       console.error("Fetch error:", err);
+      setTasks([]);
+      setEmployees([]);
+      setLoading(false);
     }
   };
 

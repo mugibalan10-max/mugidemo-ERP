@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma").prisma;
+const { prisma } = require("../lib/prisma");
 const { pool } = require("../lib/prisma");
 
 /**

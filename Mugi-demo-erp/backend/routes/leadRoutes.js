@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const prisma = require('../lib/prisma');
+const { prisma } = require('../lib/prisma');
 require('dotenv').config();
 
 // GET all leads

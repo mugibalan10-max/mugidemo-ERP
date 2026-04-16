@@ -38,16 +38,6 @@ export default function Leads() {
     }
   };
 
-  const convertToCustomer = async (id) => {
-    try {
-      const response = await axios.post(`http://localhost:5000/api/leads/${id}/convert`);
-      alert(response.data.message);
-      fetchLeads();
-    } catch (err) {
-      alert(err.response?.data?.error || "Conversion failed");
-    }
-  };
-
   const addLead = async () => {
     if (!lead.name) return alert("Name is required");
     setLoading(true);

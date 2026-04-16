@@ -12,10 +12,21 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      String   @default("employee")
+  roleName  String   @default("employee") @map("role")
+  roleId    Int?     @map("role_id")
+  role      Role?    @relation(fields: [roleId], references: [id])
   createdAt DateTime @default(now())
 
   @@map("users")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  permissions Json?    // Stores JSON of allowed modules/actions
+  users       User[]
+
+  @@map("roles")
 }
 
 model Lead {
@@ -163,4 +174,14 @@ model Payroll {
   @@map("payroll")
 }
 
+model TallySyncLog {
+  id          Int      @id @default(autoincrement())
+  module      String   // 'invoice' or 'purchase'
+  referenceId String   @map("reference_id")
+  status      String   // 'pending', 'success', 'failed'
+  response    String?  @db.Text
+  retryCount  Int      @default(0) @map("retry_count")
+  createdAt   DateTime @default(now()) @map("created_at")
 
+  @@map("tally_sync_logs")
+}

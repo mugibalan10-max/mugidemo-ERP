@@ -20,21 +20,28 @@ export default function Reports() {
     { id: 'invoices', name: 'Invoices', icon: '📄' },
     { id: 'payments', name: 'Payments', icon: '💰' },
     { id: 'employees', name: 'Employees', icon: '👥' },
-    { id: 'products', name: 'Inventory', icon: '📦' }
+    { id: 'products', name: 'Inventory', icon: '📦' },
+    { id: 'payroll', name: 'Payroll', icon: '🏦' }
   ];
 
   useEffect(() => {
     fetchReport();
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchReport = async () => {
     setLoading(true);
     try {
       const res = await fetch(`http://localhost:5000/api/reports/${activeTab}`);
       const result = await res.json();
-      setData(result);
+      if (Array.isArray(result)) {
+        setData(result);
+      } else {
+        console.error("Report data is not an array:", result);
+        setData([]);
+      }
     } catch (err) {
       console.error("Failed to fetch report");
+      setData([]);
     } finally {
       setLoading(false);
     }
