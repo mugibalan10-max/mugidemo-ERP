@@ -32,12 +32,31 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, logsRes] = await Promise.all([
-        api.get('/dashboard/stats'),
-        api.get('/admin/activity')
-      ]);
-      setStats(statsRes.data);
-      setRecentLogs(logsRes.data || []);
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/summary`);
+      const result = await res.json();
+      
+      if (result.success && result.data) {
+        setData(result.data);
+        
+        // Mocking chart data based on real totals for visualization
+        // In a real app, this would come from a /analytics endpoint
+        const mockChart = [
+          { name: 'Mon', sales: result.data.totalSales * 0.1, purchase: result.data.totalPurchase * 0.08 },
+          { name: 'Tue', sales: result.data.totalSales * 0.15, purchase: result.data.totalPurchase * 0.12 },
+          { name: 'Wed', sales: result.data.totalSales * 0.2, purchase: result.data.totalPurchase * 0.15 },
+          { name: 'Thu', sales: result.data.totalSales * 0.12, purchase: result.data.totalPurchase * 0.25 },
+          { name: 'Fri', sales: result.data.totalSales * 0.25, purchase: result.data.totalPurchase * 0.1 },
+          { name: 'Sat', sales: result.data.totalSales * 0.18, purchase: result.data.totalPurchase * 0.3 },
+        ];
+        setChartData(mockChart);
+
+        setPieData([
+          { name: 'Sales', value: result.data.totalSales, color: '#6366f1' },
+          { name: 'Purchase', value: result.data.totalPurchase, color: '#f43f5e' },
+        ]);
+      } else {
+        setData(prev => ({ ...prev, tallyStatus: "Disconnected" }));
+      }
     } catch (err) {
       console.error(err);
     }

@@ -17,12 +17,12 @@ function Home() {
 
     const fetchData = async () => {
         try {
-            const statusRes = await axios.get("http://localhost:5000/api/tally/status");
+            const statusRes = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/status`);
             setStatus({ connected: statusRes.data.connected, checking: false });
 
             if (statusRes.data.connected) {
                 // 🟢 Standardized API Call
-                const res = await axios.get("http://localhost:5000/api/tally/dashboard");
+                const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/dashboard`);
                 if (res.data.success) {
                     setDashboardData(res.data.data);
                 }
