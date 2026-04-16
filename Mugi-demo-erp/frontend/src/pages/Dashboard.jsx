@@ -39,7 +39,7 @@ export default function Dashboard() {
     else setRefreshing(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/tally/summary");
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/summary`);
       const result = await res.json();
       
       if (result.success && result.data) {
