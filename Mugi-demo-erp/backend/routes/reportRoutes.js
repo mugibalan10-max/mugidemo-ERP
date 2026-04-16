@@ -47,4 +47,16 @@ router.get("/payroll", async (req, res) => {
   }
 });
 
+router.get("/logs", async (req, res) => {
+  try {
+    const data = await prisma.activityLog.findMany({ 
+      orderBy: { createdAt: 'desc' },
+      take: 100 
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).send("Error fetching automation logs");
+  }
+});
+
 module.exports = router;

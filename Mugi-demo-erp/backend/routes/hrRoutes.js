@@ -141,10 +141,33 @@ router.get("/payroll", async (req, res) => {
   }
 });
 
+// Attendance & Leave Lock Helper
+const isAttendanceLocked = (targetDate) => {
+  const now = new Date();
+  const target = new Date(targetDate);
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const targetMonth = target.getMonth();
+  const targetYear = target.getFullYear();
+
+  // If we are touching a previous month
+  if (targetYear < currentYear || (targetYear === currentYear && targetMonth < currentMonth)) {
+    // If today is after the 5th, it's locked
+    if (now.getDate() > 5) return true;
+  }
+  return false;
+};
+
 // Attendance & Leave
 router.post("/attendance", async (req, res) => {
   try {
     const { employeeId, status, date } = req.body;
+    const targetDate = date ? new Date(date) : new Date();
+
+    if (isAttendanceLocked(targetDate)) {
+      return res.status(403).json({ error: "Corporate Policy Violation: Attendance for the previous cycle is locked after the 5th of the month." });
+    }
+
     const record = await prisma.attendance.create({
       data: {
         employeeId: parseInt(employeeId),
@@ -162,6 +185,13 @@ router.put("/attendance/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    
+    const existing = await prisma.attendance.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return res.status(404).send("Not found");
+    if (isAttendanceLocked(existing.date)) {
+       return res.status(403).json({ error: "Corporate Policy Violation: Attendance for the previous cycle is locked." });
+    }
+
     const record = await prisma.attendance.update({
       where: { id: parseInt(id) },
       data: { status }

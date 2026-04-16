@@ -96,7 +96,11 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const hrRoutes = require("./routes/hrRoutes");
 const reportRoutes = require("./routes/reportRoutes");
-const invoiceRoutes = require("./routes/invoiceRoutes"); // Using original for full compatibility
+const invoiceRoutes = require("./routes/invoiceRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const taskRoutes = require("./routes/taskRoutes");
+const procurementRoutes = require("./routes/procurementRoutes");
+const financeRoutes = require("./routes/financeRoutes");
 
 // --- Route Mounting ---
 app.use("/api/auth", authRoutes);
@@ -104,10 +108,14 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/tally", tallyRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api", inventoryRoutes); // Mounting at /api to match frontend /api/products
-app.use("/api", hrRoutes);        // Mounting at /api to match frontend /api/employees
+app.use("/api", inventoryRoutes);
+app.use("/api", hrRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api", invoiceRoutes);   // Mounting at /api to match frontend /api/invoices
+app.use("/api", invoiceRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/task-manager", taskRoutes);
+app.use("/api/procurement", procurementRoutes);
+app.use("/api/finance", financeRoutes);
 
 // Server Listen
 const PORT = process.env.PORT || 5000;

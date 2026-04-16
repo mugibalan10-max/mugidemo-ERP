@@ -21,7 +21,8 @@ export default function Reports() {
     { id: 'payments', name: 'Payments', icon: '💰' },
     { id: 'employees', name: 'Employees', icon: '👥' },
     { id: 'products', name: 'Inventory', icon: '📦' },
-    { id: 'payroll', name: 'Payroll', icon: '🏦' }
+    { id: 'payroll', name: 'Payroll', icon: '🏦' },
+    { id: 'logs', name: 'Automation Logs', icon: '🤖' }
   ];
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function Reports() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/reports/${activeTab}`);
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/reports/${activeTab}`);
       const result = await res.json();
       if (Array.isArray(result)) {
         setData(result);

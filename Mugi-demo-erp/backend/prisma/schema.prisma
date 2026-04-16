@@ -16,6 +16,11 @@ model User {
   roleId    Int?     @map("role_id")
   role      Role?    @relation(fields: [roleId], references: [id])
   createdAt DateTime @default(now())
+  
+  assignedTasks Task[]   @relation("TaskAssignee")
+  reportedTasks Task[]   @relation("TaskReporter")
+  workLogs      WorkLog[]
+  taskComments  TaskComment[]
 
   @@map("users")
 }
@@ -52,12 +57,15 @@ model Customer {
 
 model ActivityLog {
   id        Int      @id @default(autoincrement())
-  module    String
-  action    String
-  targetId  Int?
-  message   String
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now())
+  module    String   @db.VarChar(50)
+  action    String   @db.VarChar(50)
+  message   String   @db.Text
+  oldData   Json?    @map("old_data")
+  newData   Json?    @map("new_data")
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  targetId  Int?     @map("target_id")
+  userId    Int?     @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("activity_logs")
 }
@@ -107,16 +115,162 @@ model Product {
   price       Decimal  @db.Decimal(10, 2)
   createdAt   DateTime @default(now()) @map("created_at")
 
+  purchaseOrderItems PurchaseOrderItem[]
+  grnItems           GRNItem[]
+
   @@map("products")
 }
 
 model Vendor {
-  id         Int      @id @default(autoincrement())
-  vendorName String   @map("vendor_name")
-  phone      String?
-  email      String?
+  id          Int      @id @default(autoincrement())
+  vendorCode  String   @unique @map("vendor_code")
+  vendorName  String   @map("vendor_name") @db.VarChar(100)
+  gstNumber   String?  @map("gst_number") @db.VarChar(20)
+  phone       String?  @db.VarChar(15)
+  email       String?  @db.VarChar(100)
+  address     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  purchaseOrders PurchaseOrder[]
+  ledger         VendorLedger?
+  transactions   VendorTransaction[]
+  bills          VendorBill[]
+  payments       VendorPayment[]
 
   @@map("vendors")
+}
+
+model VendorLedger {
+  id               Int      @id @default(autoincrement())
+  vendorId         Int      @unique @map("vendor_id")
+  openingBalance   Decimal  @default(0) @map("opening_balance") @db.Decimal(12, 2)
+  currentBalance   Decimal  @default(0) @map("current_balance") @db.Decimal(12, 2)
+  lastUpdated      DateTime @default(now()) @updatedAt @map("last_updated")
+
+  vendor           Vendor   @relation(fields: [vendorId], references: [id])
+
+  @@map("vendor_ledgers")
+}
+
+model VendorTransaction {
+  id               Int      @id @default(autoincrement())
+  vendorId         Int      @map("vendor_id")
+  referenceType    String   @map("reference_type") @db.VarChar(50) // Bill, Payment, Return
+  referenceId      Int?     @map("reference_id")
+  transactionDate  DateTime @default(now()) @map("transaction_date")
+  debit            Decimal  @default(0) @db.Decimal(12, 2)
+  credit           Decimal  @default(0) @db.Decimal(12, 2)
+  runningBalance   Decimal  @map("running_balance") @db.Decimal(12, 2)
+  narration        String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  vendor           Vendor   @relation(fields: [vendorId], references: [id])
+
+  @@map("vendor_transactions")
+}
+
+model VendorBill {
+  id             Int      @id @default(autoincrement())
+  billNumber     String   @unique @map("bill_number")
+  vendorId       Int      @map("vendor_id")
+  grnId          Int?     @map("grn_id")
+  billDate       DateTime @default(now()) @map("bill_date")
+  dueDate        DateTime @map("due_date")
+  totalAmount    Decimal  @map("total_amount") @db.Decimal(12, 2)
+  paidAmount     Decimal  @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  balanceAmount  Decimal  @map("balance_amount") @db.Decimal(12, 2)
+  status         String   @default("Pending") @db.VarChar(30) // Pending, Partially Paid, Paid
+  approvalStatus String   @default("Pending") @map("approval_status") @db.VarChar(30)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  vendor         Vendor   @relation(fields: [vendorId], references: [id])
+  grn            GRN?     @relation(fields: [grnId], references: [id])
+  payments       VendorPayment[]
+
+  @@map("vendor_bills")
+}
+
+model VendorPayment {
+  id             Int      @id @default(autoincrement())
+  vendorId       Int      @map("vendor_id")
+  billId         Int?     @map("bill_id")
+  paymentDate    DateTime @default(now()) @map("payment_date")
+  amount         Decimal  @db.Decimal(12, 2)
+  paymentMode    String   @map("payment_mode") @db.VarChar(30)
+  transactionRef String?  @map("transaction_ref") @db.VarChar(100)
+  remarks        String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  vendor         Vendor   @relation(fields: [vendorId], references: [id])
+  bill           VendorBill? @relation(fields: [billId], references: [id])
+
+  @@map("vendor_payments")
+}
+
+model PurchaseOrder {
+  id            Int      @id @default(autoincrement())
+  poNumber      String   @unique @map("po_number") // e.g. PO-2023-001
+  vendorId      Int      @map("vendor_id")
+  poDate        DateTime @default(now()) @map("po_date")
+  expectedDate  DateTime? @map("expected_date")
+  totalAmount   Decimal  @map("total_amount") @db.Decimal(12, 2)
+  taxAmount     Decimal  @map("tax_amount") @db.Decimal(12, 2)
+  status        String   @default("Draft") @db.VarChar(30) // Draft, Approved, Sent, Partial, Completed, Cancelled
+  remarks       String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  vendor        Vendor   @relation(fields: [vendorId], references: [id])
+  items         PurchaseOrderItem[]
+  grns          GRN[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id          Int      @id @default(autoincrement())
+  poId        Int      @map("po_id")
+  productId   Int      @map("product_id")
+  quantity    Int
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(10, 2)
+  taxPercent  Decimal  @map("tax_percent") @db.Decimal(5, 2)
+  total       Decimal  @db.Decimal(12, 2)
+
+  po          PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+model GRN {
+  id           Int      @id @default(autoincrement())
+  grnNumber    String   @unique @map("grn_number") // e.g. GRN-001
+  poId         Int      @map("po_id")
+  receivedDate DateTime @default(now()) @map("received_date")
+  warehouse    String?  @db.VarChar(100)
+  receivedBy   String?  @map("received_by") @db.VarChar(100)
+  remarks      String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  po           PurchaseOrder @relation(fields: [poId], references: [id])
+  items        GRNItem[]
+  bills        VendorBill[]
+
+  @@map("grns")
+}
+
+model GRNItem {
+  id           Int      @id @default(autoincrement())
+  grnId        Int      @map("grn_id")
+  productId    Int      @map("product_id")
+  orderedQty   Int      @map("ordered_qty")
+  receivedQty  Int      @map("received_qty")
+  damagedQty   Int      @default(0) @map("damaged_qty")
+  pendingQty   Int      @map("pending_qty")
+
+  grn          GRN      @relation(fields: [grnId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id])
+
+  @@map("grn_items")
 }
 
 model PurchaseRequest {
@@ -150,13 +304,119 @@ model Attendance {
   @@map("attendance")
 }
 
+model Project {
+  id               Int      @id @default(autoincrement())
+  projectCode      String   @unique @map("project_code") // e.g. ZEN-001
+  name             String   @db.VarChar(200)
+  description      String?  @db.Text
+  clientName       String?  @map("client_name") @db.VarChar(100)
+  managerId        Int?     @map("manager_id")
+  status           String   @default("Active") @db.VarChar(50)
+  priority         String   @default("Medium") @db.VarChar(20)
+  startDate        DateTime @default(now()) @map("start_date")
+  endDate          DateTime? @map("end_date")
+  completionPercent Int     @default(0) @map("completion_percent")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tasks            Task[]
+  sprints          Sprint[]
+
+  @@map("projects")
+}
+
+model Sprint {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  name        String   @db.VarChar(100)
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  status      String   @default("Planned") @db.VarChar(50)
+  capacity    Int?     
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project     Project  @relation(fields: [projectId], references: [id])
+  tasks       Task[]
+
+  @@map("sprints")
+}
+
 model Task {
-  id         Int     @id @default(autoincrement())
-  title      String  @db.VarChar(200)
-  assignedTo Int     @map("assigned_to")
-  status     String  @default("Pending") @db.VarChar(50)
+  id               Int      @id @default(autoincrement())
+  taskCode         String   @unique @map("task_code") // e.g. TASK-001
+  title            String   @db.VarChar(255)
+  description      String?  @db.Text
+  type             String   @default("Task") @db.VarChar(50) // Epic, Story, Task, Bug
+  status           String   @default("Backlog") @db.VarChar(50)
+  priority         String   @default("P3") @db.VarChar(20)
+  
+  projectId        Int?     @map("project_id")
+  sprintId         Int?     @map("sprint_id")
+  parentId         Int?     @map("parent_id")
+  assigneeId       Int?     @map("assignee_id")
+  reporterId       Int?     @map("reporter_id")
+
+  storyPoints      Int?     @map("story_points")
+  startDate        DateTime? @map("start_date")
+  dueDate          DateTime? @map("due_date")
+  estimatedHours   Decimal? @map("estimated_hours") @db.Decimal(10, 2)
+  actualHours      Decimal? @map("actual_hours") @db.Decimal(10, 2) @default(0)
+  completionPercent Int     @default(0) @map("completion_percent")
+  approvalStatus   String   @default("Pending") @map("approval_status") @db.VarChar(50)
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  project          Project? @relation(fields: [projectId], references: [id])
+  sprint           Sprint?  @relation(fields: [sprintId], references: [id])
+  assignee         User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reporter         User?    @relation("TaskReporter", fields: [reporterId], references: [id])
+  parent           Task?    @relation("TaskHierarchy", fields: [parentId], references: [id])
+  subtasks         Task[]   @relation("TaskHierarchy")
+
+  workLogs         WorkLog[]
+  comments         TaskComment[]
+  checklist        ChecklistItem[]
 
   @@map("tasks")
+}
+
+model WorkLog {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  startTime DateTime @map("start_time")
+  endTime   DateTime? @map("end_time")
+  duration  Decimal? @db.Decimal(10, 2) // In hours
+  note      String?  @db.Text
+
+  task      Task     @relation(fields: [taskId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("work_logs")
+}
+
+model TaskComment {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task      Task     @relation(fields: [taskId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+model ChecklistItem {
+  id      Int     @id @default(autoincrement())
+  taskId  Int     @map("task_id")
+  content String  @db.VarChar(255)
+  isDone  Boolean @default(false) @map("is_done")
+
+  task    Task    @relation(fields: [taskId], references: [id])
+
+  @@map("checklist_items")
 }
 
 model Payroll {
