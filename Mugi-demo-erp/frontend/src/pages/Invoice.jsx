@@ -27,7 +27,7 @@ export default function Invoice() {
 
   const fetchInvoices = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/invoices");
+      const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/invoices`);
       setInvoices(res.data);
     } catch (err) {
       console.error("Error fetching invoices:", err);
@@ -41,7 +41,7 @@ export default function Invoice() {
     
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/invoices", data);
+      const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/invoices`, data);
       alert("✅ Invoice Created! ID: " + res.data.invoice_no);
       setData({ customer_name: "", subtotal: "", gst_percent: 18 }); // Reset form
       fetchInvoices(); // Refresh list
@@ -101,7 +101,7 @@ export default function Invoice() {
 
   const retrySync = async (id) => {
     try {
-      const response = await axios.post("http://localhost:5000/api/tally/sync", { invoiceId: id });
+      const response = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/sync`, { invoiceId: id });
       alert(response.data.message);
       fetchInvoices();
     } catch (err) {

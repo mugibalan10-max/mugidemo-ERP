@@ -73,4 +73,43 @@ router.get("/products", async (req, res) => {
   }
 });
 
+// Update Product with Audit Trail
+router.put("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { product_name, price, min_stock, quantity } = req.body;
+
+    const oldProduct = await prisma.product.findUnique({ where: { id: parseInt(id) } });
+    if (!oldProduct) return res.status(404).json({ error: "Product not found" });
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: {
+        productName: product_name,
+        price: price ? parseFloat(price) : undefined,
+        minStock: min_stock ? parseInt(min_stock) : undefined,
+        quantity: quantity ? parseInt(quantity) : undefined
+      }
+    });
+
+    // Enterprise Audit Log
+    await prisma.activityLog.create({
+      data: {
+        module: "Inventory",
+        action: "PRODUCT_UPDATE",
+        message: `Product ${updatedProduct.sku} updated. Price changed from ${oldProduct.price} to ${updatedProduct.price}`,
+        oldData: oldProduct,
+        newData: updatedProduct,
+        ipAddress: req.socket.remoteAddress,
+        targetId: updatedProduct.id
+      }
+    });
+
+    res.json(updatedProduct);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update product" });
+  }
+});
+
 module.exports = router;

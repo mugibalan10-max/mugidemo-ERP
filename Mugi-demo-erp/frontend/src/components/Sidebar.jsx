@@ -1,196 +1,213 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Target, 
+  FileText, 
+  Package, 
+  RefreshCcw, 
+  ClipboardCheck, 
+  Briefcase, 
+  TrendingUp, 
+  Settings, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight,
+  Handshake,
+  BookOpen,
+  PieChart,
+  UserCircle
+} from 'lucide-react';
 
-/**
- * Sidebar Component for Mugi Demo ERP
- * Features a modern, premium dark-themed design with hover effects and glassmorphism.
- */
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const userRole = localStorage.getItem('role') || 'admin';
 
-  const userRole = localStorage.getItem('role') || 'employee';
+  const menuSections = [
+    {
+      title: "OVERVIEW",
+      items: [
+        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
+      ]
+    },
+    {
+      title: "COMMERCIAL",
+      items: [
+        { name: 'Leads', icon: <Target size={20} />, path: '/leads', roles: ['admin', 'sales'] },
+        { name: 'Customers', icon: <Users size={20} />, path: '/customers', roles: ['admin', 'sales'] },
+        { name: 'Invoices', icon: <FileText size={20} />, path: '/invoices', roles: ['admin', 'sales'] },
+      ]
+    },
+    {
+      title: "OPERATIONS",
+      items: [
+        { name: 'Inventory', icon: <Package size={20} />, path: '/inventory', roles: ['admin', 'inventory'] },
+        { name: 'Vendors', icon: <Handshake size={20} />, path: '/vendors', roles: ['admin', 'inventory'] },
+        { name: 'Purchase Orders', icon: <ClipboardCheck size={20} />, path: '/purchase-view', roles: ['admin', 'inventory'] },
+        { name: 'Receive Goods', icon: <Package size={20} />, path: '/grn', roles: ['admin', 'inventory'] },
+      ]
+    },
+    {
+      title: "FINANCE",
+      items: [
+        { name: 'Tally Sync', icon: <RefreshCcw size={20} />, path: '/tally-dashboard', roles: ['admin'] },
+        { name: 'Vendor Bills', icon: <FileText size={20} />, path: '/vendor-bills', roles: ['admin', 'accounts'] },
+        { name: 'Vendor Ledger', icon: <BookOpen size={20} />, path: '/vendor-ledger', roles: ['admin', 'accounts'] },
+        { name: 'Aging Analysis', icon: <TrendingUp size={20} />, path: '/aging-dashboard', roles: ['admin', 'accounts'] },
+      ]
+    },
+    {
+      title: "HUMAN RESOURCES",
+      items: [
+        { name: 'Project Mgmt', icon: <Briefcase size={20} />, path: '/tasks', roles: ['admin', 'employee', 'hr'] },
+        { name: 'Employees', icon: <UserCircle size={20} />, path: '/employees', roles: ['admin', 'hr'] },
+        { name: 'Payroll', icon: <TrendingUp size={20} />, path: '/payroll', roles: ['admin', 'hr'] },
+        { name: 'Reports', icon: <PieChart size={20} />, path: '/reports', roles: ['admin', 'hr'] },
+      ]
+    }
+  ];
 
   const handleLogout = () => {
-    localStorage.removeItem('role');
-    localStorage.removeItem('token'); // Assuming token is also stored
+    localStorage.clear();
     navigate('/login');
   };
 
-  const menuItems = [
-    { name: 'Dashboard', icon: '📊', path: '/', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
-    { name: 'Leads', icon: '🎯', path: '/leads', roles: ['admin', 'sales'] },
-    { name: 'Customers', icon: '👥', path: '/customers', roles: ['admin', 'sales'] },
-    { name: 'Invoice', icon: '📄', path: '/invoices', roles: ['admin', 'sales'] },
-    { name: 'Inventory', icon: '📦', path: '/inventory', roles: ['admin', 'inventory'] },
-    { name: 'Tally Sync', icon: '🔄', path: '/tally-dashboard', roles: ['admin'] },
-    { name: 'Tasks', icon: '📋', path: '/tasks', roles: ['admin', 'employee', 'hr'] },
-    { name: 'Employees', icon: '👷', path: '/employees', roles: ['admin', 'hr'] },
-    { name: 'Payroll', icon: '🏦', path: '/payroll', roles: ['admin', 'hr'] },
-    { name: 'Reports', icon: '📊', path: '/reports', roles: ['admin', 'hr'] },
-  ].filter(item => item.roles.includes(userRole));
-
-  const sidebarStyle = {
-    width: "240px",
-    height: "100vh",
-    background: "#0f172a", // Sleek Slate-900 background
-    color: "#f8fafc",
-    padding: "32px 16px",
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: "4px 0 24px rgba(0, 0, 0, 0.4)",
-    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-    borderRight: "1px solid rgba(255, 255, 255, 0.1)",
-  };
-
-  const logoStyle = {
-    fontSize: "1.25rem",
-    fontWeight: "800",
-    marginBottom: "48px",
-    padding: "0 12px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    letterSpacing: "-0.025em",
-  };
-
-  const navItemStyle = {
-    display: "flex",
-    alignItems: "center",
-    padding: "12px 16px",
-    marginBottom: "8px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    color: "#94a3b8",
-    fontSize: "0.9375rem",
-    fontWeight: "500",
-    textDecoration: "none",
-  };
-
-  const activeItemStyle = {
-    ...navItemStyle,
-    background: "rgba(99, 102, 241, 0.15)",
-    color: "#ffffff",
-    boxShadow: "inset 0 0 0 1px rgba(99, 102, 241, 0.2)",
-  };
-
   return (
-    <div style={sidebarStyle}>
-      <div style={logoStyle}>
-        <div style={{ 
-          width: "32px", 
-          height: "32px", 
-          background: "linear-gradient(135deg, #6366f1 0%, #10b981 100%)",
-          borderRadius: "8px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          WebkitTextFillColor: "initial",
-          boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)"
+    <aside style={{
+      width: isCollapsed ? '88px' : '280px',
+      height: '100vh',
+      background: '#0f172a',
+      color: '#f8fafc',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      position: 'sticky',
+      top: 0,
+      borderRight: '1px solid rgba(255,255,255,0.1)',
+      zIndex: 100,
+      padding: '24px 16px'
+    }}>
+      {/* Brand Logo */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '0 12px',
+        marginBottom: '40px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          minWidth: '40px',
+          height: '40px',
+          background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 16px rgba(99, 102, 241, 0.4)'
         }}>
-          Z
+          <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'white' }}>Z</span>
         </div>
-        Zen Finance
+        {!isCollapsed && (
+          <div style={{ transition: 'opacity 0.3s' }}>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Zen Finance</h1>
+            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Enterprise Suite</p>
+          </div>
+        )}
       </div>
 
-      <nav style={{ flex: 1 }}>
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-          return (
-          <Link
-            key={item.name}
-            to={item.path || '#'}
-            style={isActive ? activeItemStyle : navItemStyle}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                e.currentTarget.style.color = "#ffffff";
-                e.currentTarget.style.transform = "translateX(4px)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#94a3b8";
-                e.currentTarget.style.transform = "translateX(0)";
-              }
-            }}
-          >
-            <span style={{ marginRight: "14px", fontSize: "1.25rem", filter: isActive ? "none" : "grayscale(0.2)" }}>
-              {item.icon}
-            </span>
-            {item.name}
-          </Link>
-        )})}
-      </nav>
+      {/* Navigation Sections */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingRight: '4px' }}>
+        {menuSections.map((section, sidx) => {
+          const filteredItems = section.items.filter(i => i.roles.includes(userRole));
+          if (filteredItems.length === 0) return null;
 
-      {/* User Profile Section at Bottom */}
-      <div style={{ 
-        marginTop: "auto", 
-        padding: "16px 12px", 
-        background: "rgba(255, 255, 255, 0.03)", 
-        borderRadius: "12px", 
-        display: "flex", 
-        alignItems: "center", 
-        gap: "12px" 
-      }}>
-        <div style={{ 
-          width: "36px", 
-          height: "36px", 
-          borderRadius: "10px", 
-          background: "linear-gradient(45deg, #4f46e5, #7c3aed)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontWeight: "bold",
-          fontSize: "0.8rem"
-        }}>
-          JD
-        </div>
-        <div style={{ overflow: "hidden", flex: 1 }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            John Doe
-          </p>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>
-            Administrator
-          </p>
-        </div>
+          return (
+            <div key={sidx} style={{ marginBottom: '24px' }}>
+              {!isCollapsed && (
+                <p style={{ fontSize: '0.65rem', fontWeight: '800', color: '#475569', marginBottom: '12px', paddingLeft: '12px', letterSpacing: '0.15em' }}>
+                  {section.title}
+                </p>
+              )}
+              {filteredItems.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      color: isActive ? '#fff' : '#94a3b8',
+                      background: isActive ? 'linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.05) 100%)' : 'transparent',
+                      marginBottom: '4px',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      justifyContent: isCollapsed ? 'center' : 'flex-start'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = '#fff';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    {isActive && (
+                      <div style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: '3px', background: '#6366f1', borderRadius: '0 4px 4px 0' }} />
+                    )}
+                    <span style={{ color: isActive ? '#6366f1' : 'inherit' }}>{item.icon}</span>
+                    {!isCollapsed && <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sidebar Footer */}
+      <div style={{ paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.03)', border: 'none', borderRadius: '10px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}
+        >
+          {isCollapsed ? <ChevronRight size={18} /> : <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ChevronLeft size={18} /> <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Collapse</span></div>}
+        </button>
         
-        {/* Logout Button */}
         <button 
           onClick={handleLogout}
           style={{
+            width: '100%',
+            padding: '12px',
             background: 'transparent',
             border: 'none',
-            color: '#94a3b8',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
+            borderRadius: '10px',
+            color: '#f43f5e',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
+            gap: '12px',
+            justifyContent: isCollapsed ? 'center' : 'flex-start',
+            transition: 'background 0.2s'
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(244, 63, 94, 0.1)";
-            e.currentTarget.style.color = "#f43f5e";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#94a3b8";
-          }}
-          title="Logout"
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         >
-          <LogOut size={18} />
+          <LogOut size={20} />
+          {!isCollapsed && <span style={{ fontSize: '0.9rem', fontWeight: '700' }}>Sign Out</span>}
         </button>
       </div>
-    </div>
+    </aside>
   );
 }
-

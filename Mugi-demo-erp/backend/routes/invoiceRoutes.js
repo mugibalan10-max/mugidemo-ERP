@@ -3,6 +3,7 @@ const router = express.Router();
 const { prisma, pool } = require("../lib/prisma");
 const tallyService = require("../services/tally.service");
 const automationService = require("../services/automationService");
+const { auditLog } = require("../lib/auditLogger");
 
 // Get all customers
 router.get("/customers", async (req, res) => {
@@ -52,7 +53,9 @@ router.post("/invoices", async (req, res) => {
                 module: "Invoicing",
                 action: "Generation",
                 targetId: invoice.id,
-                message: `Invoice ${invoice_no} generated for ${customer_name}. Total: ₹${total}`
+                message: `Invoice ${invoice_no} generated for ${customer_name}. Total: ₹${total}`,
+                newData: invoice,
+                ipAddress: req.socket.remoteAddress
             }
         });
 

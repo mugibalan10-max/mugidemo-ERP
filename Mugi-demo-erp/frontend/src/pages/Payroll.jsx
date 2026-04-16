@@ -24,7 +24,7 @@ export default function Payroll() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/employees");
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/employees`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setEmployees(data);
@@ -40,7 +40,7 @@ export default function Payroll() {
 
   const fetchPayroll = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/payroll");
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/payroll`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setPayrollHistory(data);
@@ -59,7 +59,7 @@ export default function Payroll() {
     if (!form.employeeId) return alert("Select an employee");
     
     try {
-      const res = await fetch("http://localhost:5000/api/payroll/calculate", {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/payroll/calculate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form)

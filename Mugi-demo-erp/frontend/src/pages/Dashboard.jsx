@@ -1,43 +1,36 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 import { 
-  TrendingUp, TrendingDown, DollarSign, ShoppingCart, 
-  Package, Landmark, ArrowRight, RefreshCw, AlertCircle,
-  BarChart3, PieChart, Activity, Receipt
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  ShoppingBag, 
+  CreditCard, 
+  Bell, 
+  Search, 
+  ArrowUpRight, 
+  Clock, 
+  CheckCircle2,
+  AlertCircle,
+  MoreVertical
 } from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, BarChart, Bar, Legend, Cell, PieChart as RePieChart, Pie
-} from 'recharts';
 
-/**
- * Modern ERP Dashboard UI
- * Integrated with Tally Real-time Data
- */
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [data, setData] = useState({
+  const [stats, setStats] = useState({
     totalSales: 0,
-    totalPurchase: 0,
-    totalProfit: 0,
-    cashBalance: 0,
-    stockValue: 0,
-    recentTransactions: [],
-    lowStock: [],
-    gstSummary: { collected: 0, paid: 0, net: 0 },
-    tallyStatus: "Checking..."
+    totalOrders: 0,
+    totalInventory: 0,
+    pendingPayments: 0
   });
 
-  const [chartData, setChartData] = useState([]);
-  const [pieData, setPieData] = useState([]);
+  const [recentLogs, setRecentLogs] = useState([]);
 
-  const fetchDashboardData = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    else setRefreshing(true);
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
+  const fetchDashboardData = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/summary`);
       const result = await res.json();
@@ -65,396 +58,148 @@ export default function Dashboard() {
         setData(prev => ({ ...prev, tallyStatus: "Disconnected" }));
       }
     } catch (err) {
-      console.error("Dashboard Fetch Error:", err);
-      setData(prev => ({ ...prev, tallyStatus: "Disconnected" }));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error(err);
     }
-  }, []);
-
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (!role) navigate('/login');
-    
-    fetchDashboardData();
-
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => fetchDashboardData(true), 30000);
-    return () => clearInterval(interval);
-  }, [navigate, fetchDashboardData]);
-
-  const formatCurrency = (val) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(val);
   };
 
-  const theme = {
-    primary: '#6366f1',
-    secondary: '#8b5cf6',
-    success: '#10b981',
-    danger: '#f43f5e',
-    warning: '#f59e0b',
-    info: '#0ea5e9',
-    bg: '#f8fafc',
-    card: '#ffffff',
-    textMain: '#0f172a',
-    textMuted: '#64748b',
-    border: '#e2e8f0'
-  };
-
-  const kpis = [
-    { title: 'Total Sales', value: formatCurrency(data.totalSales), icon: <ShoppingCart size={24} />, color: theme.primary, trend: '+12.5%' },
-    { title: 'Total Purchase', value: formatCurrency(data.totalPurchase), icon: <Receipt size={24} />, color: theme.danger, trend: '+5.2%' },
-    { title: 'Gross Profit', value: formatCurrency(data.totalProfit), icon: <Activity size={24} />, color: theme.success, trend: '+18.3%' },
-    { title: 'Cash & Bank', value: formatCurrency(data.cashBalance), icon: <Landmark size={24} />, color: theme.info, trend: '-2.1%' },
-    { title: 'Stock Value', value: formatCurrency(data.stockValue), icon: <Package size={24} />, color: theme.warning, trend: '+8.4%' },
+  const kpiData = [
+    { label: 'Total Invoiced', value: `₹${parseFloat(stats.totalSales || 0).toLocaleString()}`, icon: <TrendingUp size={24} />, color: '#6366f1', trend: '+12.5%' },
+    { label: 'Purchase Orders', value: stats.totalOrders || 0, icon: <ShoppingBag size={24} />, color: '#10b981', trend: '+4.2%' },
+    { label: 'Stock Valuation', value: `₹${parseFloat(stats.totalInventory || 0).toLocaleString()}`, icon: <TrendingUp size={24} />, color: '#f59e0b', trend: '-2.1%' },
+    { label: 'Vendor Payables', value: `₹${parseFloat(stats.pendingPayments || 0).toLocaleString()}`, icon: <CreditCard size={24} />, color: '#ef4444', trend: '+8.3%' },
   ];
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', background: theme.bg }}>
-        <Sidebar />
-        <div style={{ flex: 1, padding: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <RefreshCw size={48} className="animate-spin" style={{ color: theme.primary, marginBottom: '16px' }} />
-            <h2 style={{ color: theme.textMain, fontWeight: '600' }}>Loading Real-time Insights...</h2>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: theme.bg }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
       <Sidebar />
-      <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
-        {/* Top Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '32px' 
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        
+        {/* Top Navigation Bar */}
+        <header style={{
+          height: '80px',
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 40px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50
         }}>
-          <div>
-            <h1 style={{ fontSize: '1.875rem', fontWeight: '800', color: theme.textMain, marginBottom: '4px' }}>
-              Business Overview
-            </h1>
-            <p style={{ color: theme.textMuted, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Dashboard updated via Tally • 
-              <span style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px',
-                color: data.tallyStatus === 'Connected' ? theme.success : theme.danger, 
-                fontWeight: '700' 
-              }}>
-                <span className="status-dot" style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: data.tallyStatus === 'Connected' ? theme.success : theme.danger,
-                  boxShadow: `0 0 8px ${data.tallyStatus === 'Connected' ? theme.success : theme.danger}`,
-                  display: 'inline-block'
-                }}></span>
-                {data.tallyStatus}
-              </span>
-            </p>
+          <div style={{ position: 'relative', width: '400px' }}>
+            <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
+            <input 
+              placeholder="Quick search commands, customers, or reports..." 
+              style={{ padding: '12px 16px 12px 48px', width: '100%', borderRadius: '14px', border: '1px solid #e2e8f0', background: '#f1f5f9', outline: 'none', fontSize: '0.9rem', color: '#1e293b' }}
+            />
           </div>
-          
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => fetchDashboardData(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                borderRadius: '12px',
-                background: 'white',
-                border: `1px solid ${theme.border}`,
-                color: theme.textMain,
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-              {refreshing ? 'Syncing...' : 'Sync Tally'}
-            </button>
-            <button style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              background: theme.primary,
-              color: 'white',
-              border: 'none',
-              fontWeight: '600',
-              cursor: 'pointer',
-              boxShadow: `0 4px 14px 0 ${theme.primary}40`
-            }}>
-              Generate Report
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ position: 'relative', cursor: 'pointer', padding: '10px', borderRadius: '12px', background: '#f1f5f9' }}>
+               <Bell size={20} color="#64748b" />
+               <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' }} />
+            </div>
+            <div style={{ borderLeft: '1px solid #e2e8f0', height: '32px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+               <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: '700' }}>John Doe</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>Super Admin</p>
+               </div>
+               <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(45deg, #6366f1, #a855f7)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>JD</div>
+            </div>
           </div>
-        </div>
+        </header>
 
-        {/* KPI Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
-          gap: '20px',
-          marginBottom: '32px'
-        }}>
-          {kpis.map((kpi, idx) => (
-            <div key={idx} style={{
-              background: 'white',
-              padding: '24px',
-              borderRadius: '20px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              transition: 'transform 0.2s',
-              cursor: 'default'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <div style={{ 
-                  width: '44px', height: '44px', borderRadius: '12px', 
-                  background: `${kpi.color}15`, color: kpi.color,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  {kpi.icon}
-                </div>
-                <div style={{ 
-                  fontSize: '0.75rem', fontWeight: '700', 
-                  color: kpi.trend.startsWith('+') ? theme.success : theme.danger,
-                  background: kpi.trend.startsWith('+') ? `${theme.success}10` : `${theme.danger}10`,
-                  padding: '4px 8px', borderRadius: '8px', height: 'fit-content'
-                }}>
-                  {kpi.trend}
-                </div>
+        {/* Content Area */}
+        <div style={{ padding: '40px', flex: 1 }}>
+          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
+              <div>
+                <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', marginBottom: '4px' }}>Overview</h1>
+                <p style={{ color: '#64748b' }}>Real-time enterprise metrics and business health status.</p>
               </div>
-              <p style={{ color: theme.textMuted, fontSize: '0.875rem', fontWeight: '500', marginBottom: '4px' }}>{kpi.title}</p>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: theme.textMain }}>{kpi.value}</h3>
-            </div>
-          ))}
-        </div>
-
-        {/* Charts Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '32px' }}>
-          {/* Sales Analytics */}
-          <div style={{ 
-            background: 'white', padding: '24px', borderRadius: '24px', 
-            border: `1px solid ${theme.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: theme.textMain }}>Revenue vs Expense Trend</h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', color: theme.textMuted }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: theme.primary }}></div> Sales
-                </span>
-                <span style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', color: theme.textMuted }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: theme.danger }}></div> Purchase
-                </span>
-              </div>
-            </div>
-            <div style={{ height: '300px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={theme.primary} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={theme.primary} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: theme.textMuted, fontSize: 12}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: theme.textMuted, fontSize: 12}} tickFormatter={(value) => `₹${value/1000}k`} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                    formatter={(value) => formatCurrency(value)}
-                  />
-                  <Area type="monotone" dataKey="sales" stroke={theme.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
-                  <Area type="monotone" dataKey="purchase" stroke={theme.danger} strokeWidth={2} fillOpacity={0} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Income Breakdown */}
-          <div style={{ 
-            background: 'white', padding: '24px', borderRadius: '24px', 
-            border: `1px solid ${theme.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: theme.textMain, marginBottom: '24px' }}>Transaction Mix</h3>
-            <div style={{ height: '240px', width: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
-                </RePieChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{ marginTop: '20px' }}>
-               {pieData.map((item, i) => (
-                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color }}></div>
-                      <span style={{ fontSize: '0.875rem', color: theme.textMuted }}>{item.name}</span>
-                    </div>
-                    <span style={{ fontSize: '0.875rem', fontWeight: '700', color: theme.textMain }}>
-                      {((item.value / (data.totalSales + data.totalPurchase || 1)) * 100).toFixed(1)}%
-                    </span>
-                 </div>
-               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Rows */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-          
-          {/* Recent Transactions */}
-          <div style={{ 
-            background: 'white', padding: '24px', borderRadius: '24px', 
-            border: `1px solid ${theme.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: theme.textMain }}>Recent Transactions</h3>
-              <button style={{ color: theme.primary, background: 'none', border: 'none', fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer' }}>
-                View All
+              <button style={{ padding: '12px 24px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                 Generate Quarterly Report <ArrowUpRight size={18} />
               </button>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Party</th>
-                  <th style={{ textAlign: 'left', padding: '12px 0', color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Type</th>
-                  <th style={{ textAlign: 'right', padding: '12px 0', color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase' }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentTransactions.map((tx, i) => (
-                  <tr key={i} style={{ borderBottom: i === data.recentTransactions.length - 1 ? 'none' : `1px solid ${theme.bg}` }}>
-                    <td style={{ padding: '16px 0' }}>
-                      <p style={{ margin: 0, fontWeight: '600', color: theme.textMain, fontSize: '0.9rem' }}>{tx.party}</p>
-                      <p style={{ margin: 0, color: theme.textMuted, fontSize: '0.75rem' }}>#{tx.number}</p>
-                    </td>
-                    <td style={{ padding: '16px 0' }}>
-                      <span style={{ 
-                        padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '700',
-                        background: tx.type === 'Sales' ? `${theme.success}10` : `${theme.danger}10`,
-                        color: tx.type === 'Sales' ? theme.success : theme.danger
-                      }}>
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: '700', color: theme.textMain }}>
-                      {formatCurrency(tx.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
-          {/* Right Column: Inventory & GST */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* GST Summary */}
-            <div style={{ 
-              background: 'white', padding: '24px', borderRadius: '24px', 
-              border: `1px solid ${theme.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: theme.textMain, marginBottom: '20px' }}>GST Summary</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ padding: '16px', borderRadius: '16px', background: `${theme.info}05`, border: `1px solid ${theme.info}10` }}>
-                  <p style={{ margin: 0, color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600' }}>GST Collected</p>
-                  <h4 style={{ margin: '4px 0 0', color: theme.info, fontWeight: '800' }}>{formatCurrency(data.gstSummary.collected)}</h4>
+            {/* KPI Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
+              {kpiData.map((kpi, idx) => (
+                <div key={idx} style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: `${kpi.color}15`, color: kpi.color, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                    {kpi.icon}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</p>
+                  <h2 style={{ margin: '8px 0', fontSize: '1.75rem', fontWeight: '900', color: '#1e293b' }}>{kpi.value}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                     <span style={{ fontSize: '0.85rem', fontWeight: '800', color: kpi.trend.startsWith('+') ? '#10b981' : '#ef4444' }}>{kpi.trend}</span>
+                     <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>vs last month</span>
+                  </div>
                 </div>
-                <div style={{ padding: '16px', borderRadius: '16px', background: `${theme.danger}05`, border: `1px solid ${theme.danger}10` }}>
-                  <p style={{ margin: 0, color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600' }}>GST Paid</p>
-                  <h4 style={{ margin: '4px 0 0', color: theme.danger, fontWeight: '800' }}>{formatCurrency(data.gstSummary.paid)}</h4>
-                </div>
-              </div>
-              <div style={{ marginTop: '16px', padding: '16px', borderRadius: '16px', background: `${theme.success}05`, border: `1px solid ${theme.success}10`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: 0, color: theme.textMuted, fontSize: '0.75rem', fontWeight: '600' }}>Net Liability</p>
-                  <h4 style={{ margin: '4px 0 0', color: theme.success, fontWeight: '800' }}>{formatCurrency(data.gstSummary.net)}</h4>
-                </div>
-                <ArrowRight size={20} color={theme.success} />
-              </div>
+              ))}
             </div>
 
-            {/* Low Stock Alerts */}
-            <div style={{ 
-              background: 'white', padding: '24px', borderRadius: '24px', 
-              border: `1px solid ${theme.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              flex: 1
-            }}>
-              <div style={{ display: 'flex', items: 'center', gap: '10px', marginBottom: '20px' }}>
-                <AlertCircle size={20} color={theme.danger} />
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: theme.textMain }}>Low Stock Alerts</h3>
+            {/* Main Dashboard Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+              
+              {/* Approval Queue */}
+              <div style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: '800' }}>Critical Approval Queue</h3>
+                    <span style={{ padding: '6px 12px', background: '#fef2f2', color: '#ef4444', fontSize: '0.75rem', fontWeight: '800', borderRadius: '8px' }}>5 Pending</span>
+                 </div>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {[
+                      { type: 'PO Approval', ref: 'PO-2023-0042', amount: '₹1,42,000', user: 'Finance Lead' },
+                      { type: 'Price Override', ref: 'SKU-8822', amount: '-15%', user: 'Sales Manager' },
+                      { type: 'Leave Request', ref: 'EMP-009', amount: '3 Days', user: 'Operations Head' }
+                    ].map((app, idx) => (
+                      <div key={idx} style={{ padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <div style={{ display: 'flex', gap: '16px' }}>
+                            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={20} color="#94a3b8" /></div>
+                            <div>
+                               <p style={{ margin: 0, fontWeight: '700', fontSize: '0.95rem' }}>{app.type}</p>
+                               <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>Reference: {app.ref} • {app.user}</p>
+                            </div>
+                         </div>
+                         <div style={{ textAlign: 'right' }}>
+                            <p style={{ margin: 0, fontWeight: '800', fontSize: '0.95rem', color: '#1e293b' }}>{app.amount}</p>
+                            <button style={{ margin: '8px 0 0', background: 'transparent', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Review Now →</button>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {data.lowStock.length > 0 ? data.lowStock.map((item, i) => (
-                  <div key={i} style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px', borderRadius: '12px', background: '#fffafb',
-                    border: '1px solid #fee2e2'
-                  }}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: '600', color: '#991b1b', fontSize: '0.85rem' }}>{item.name}</p>
-                      <p style={{ margin: 0, color: '#ef4444', fontSize: '0.75rem' }}>Critical Level</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontWeight: '800', color: '#ef4444' }}>{item.quantity}</p>
-                      <p style={{ margin: 0, color: '#f87171', fontSize: '0.65rem' }}>In Stock</p>
-                    </div>
-                  </div>
-                )) : (
-                  <div style={{ textAlign: 'center', padding: '20px', color: theme.textMuted }}>
-                    <BarChart3 size={32} style={{ opacity: 0.2, marginBottom: '8px' }} />
-                    <p style={{ fontSize: '0.875rem' }}>All stock levels are optimal</p>
-                  </div>
-                )}
-              </div>
-            </div>
 
+              {/* System Audit Log */}
+              <div style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
+                 <h3 style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '24px' }}>Security & Audit Log</h3>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {recentLogs.slice(0, 6).map((log, idx) => (
+                      <div key={idx} style={{ display: 'flex', gap: '14px' }}>
+                         <div style={{ 
+                            width: '12px', height: '12px', borderRadius: '50%', marginTop: '6px', 
+                            background: log.action.includes('Delete') ? '#ef4444' : log.action.includes('Update') ? '#f59e0b' : '#10b981' 
+                         }} />
+                         <div>
+                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '700' }}>{log.message}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(log.createdAt).toLocaleTimeString()}</span>
+                               <span style={{ fontSize: '0.75rem', padding: '2px 6px', background: '#f1f5f9', color: '#64748b', borderRadius: '4px' }}>{log.module}</span>
+                            </div>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+                 <button style={{ width: '100%', padding: '12px', marginTop: '24px', borderRadius: '12px', border: '1px solid #f1f5f9', background: 'white', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}>View Full Audit Trail</button>
+              </div>
+
+            </div>
           </div>
         </div>
-      </div>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.5); opacity: 0.5; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-        .status-dot {
-          animation: pulse 2s ease-in-out infinite;
-        }
-      `}</style>
+      </main>
     </div>
   );
 }
-
