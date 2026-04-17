@@ -1,0 +1,71 @@
+.border-glow-card {
+  position: relative;
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+  z-index: 1;
+  padding: 1.5px; /* The border thickness */
+  display: flex;
+  overflow: visible; /* Allow glow to bleed out */
+  border: 1px solid rgba(0,0,0,0.03); /* Subtle definition for light mode */
+}
+
+/* Moving Cursor Glow Light */
+.edge-light {
+  position: absolute;
+  inset: -2px; /* Slight overlap with base */
+  z-index: 2;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--cursor-angle, 0deg) at 50% 50%,
+    transparent 0deg,
+    var(--glow-color) var(--cone-spread, 25deg),
+    transparent calc(var(--cone-spread, 25deg) * 2)
+  );
+  filter: blur(8px);
+  border-radius: var(--border-radius);
+  /* The magic: use the edge proximity to dim/brighten */
+  opacity: calc(var(--edge-proximity, 0) / 100);
+  transition: opacity 0.4s ease;
+}
+
+.border-glow-inner {
+  position: relative;
+  z-index: 5;
+  background-color: var(--card-bg);
+  height: 100%;
+  width: 100%;
+  border-radius: calc(var(--border-radius) - 1px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Background Atmosphere (Gradients) */
+.border-glow-card::before {
+  content: '';
+  position: absolute;
+  inset: 0px;
+  z-index: 0;
+  opacity: var(--fill-opacity);
+  background: 
+    var(--gradient-one),
+    var(--gradient-two),
+    var(--gradient-three),
+    var(--gradient-four),
+    var(--gradient-five),
+    var(--gradient-six),
+    var(--gradient-seven),
+    var(--gradient-base);
+  filter: blur(30px);
+  border-radius: var(--border-radius);
+}
+
+/* Sweep indicator */
+.sweep-active .edge-light { opacity: 1 !important; }
+
+/* Interactive Scale */
+.border-glow-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+}

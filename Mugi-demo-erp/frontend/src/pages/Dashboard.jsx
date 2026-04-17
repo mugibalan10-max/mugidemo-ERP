@@ -25,10 +25,27 @@ export default function Dashboard() {
   });
 
   const [recentLogs, setRecentLogs] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [pieData, setPieData] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [tallyStatus, setTallyStatus] = useState('checking'); // 'connected', 'disconnected', 'checking'
 
   useEffect(() => {
     fetchDashboardData();
+    checkTallyStatus();
+    const interval = setInterval(checkTallyStatus, 10000); // Check every 10s
+    return () => clearInterval(interval);
   }, []);
+
+  const checkTallyStatus = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/status`);
+      const data = await res.json();
+      setTallyStatus(data.connected ? 'connected' : 'disconnected');
+    } catch (err) {
+      setTallyStatus('disconnected');
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -36,10 +53,13 @@ export default function Dashboard() {
       const result = await res.json();
       
       if (result.success && result.data) {
-        setData(result.data);
+        setStats({
+          totalSales: result.data.totalSales,
+          totalOrders: result.data.recentTransactions?.length || 0,
+          totalInventory: result.data.stockValue,
+          pendingPayments: result.data.gstSummary?.net || 0
+        });
         
-        // Mocking chart data based on real totals for visualization
-        // In a real app, this would come from a /analytics endpoint
         const mockChart = [
           { name: 'Mon', sales: result.data.totalSales * 0.1, purchase: result.data.totalPurchase * 0.08 },
           { name: 'Tue', sales: result.data.totalSales * 0.15, purchase: result.data.totalPurchase * 0.12 },
@@ -54,11 +74,34 @@ export default function Dashboard() {
           { name: 'Sales', value: result.data.totalSales, color: '#6366f1' },
           { name: 'Purchase', value: result.data.totalPurchase, color: '#f43f5e' },
         ]);
-      } else {
-        setData(prev => ({ ...prev, tallyStatus: "Disconnected" }));
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/reports/quarterly`);
+      const result = await res.json();
+      
+      if (result.success) {
+        alert(
+          `📊 QUARTERLY REPORT GENERATED: ${result.period}\n\n` +
+          `• Total Revenue: ₹${result.summary.totalRevenue.toLocaleString()}\n` +
+          `• Invoices Sent: ${result.summary.invoiceCount}\n` +
+          `• Total Collected: ₹${result.summary.totalCollected.toLocaleString()}\n` +
+          `• Outstanding Balance: ₹${result.summary.outstanding.toLocaleString()}\n\n` +
+          `Status: SUCCESS`
+        );
+      } else {
+        alert("Failed to generate report.");
+      }
+    } catch (err) {
+      alert("Error generating report: " + err.message);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -70,13 +113,14 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#f8fafc', overflow: 'hidden' }}>
       <Sidebar />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         
         {/* Top Navigation Bar */}
         <header style={{
           height: '80px',
+          minHeight: '80px',
           background: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid #e2e8f0',
@@ -96,6 +140,36 @@ export default function Dashboard() {
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            {/* Tally Connection Indicator */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              padding: '8px 14px', 
+              borderRadius: '12px', 
+              background: tallyStatus === 'connected' ? 'rgba(34, 197, 94, 0.1)' : tallyStatus === 'disconnected' ? 'rgba(239, 68, 68, 0.1)' : '#f1f5f9',
+              border: `1px solid ${tallyStatus === 'connected' ? 'rgba(34, 197, 94, 0.2)' : tallyStatus === 'disconnected' ? 'rgba(239, 68, 68, 0.2)' : '#e2e8f0'}`,
+              transition: 'all 0.3s ease'
+            }}>
+              <div style={{ 
+                width: '10px', 
+                height: '10px', 
+                borderRadius: '50%', 
+                background: tallyStatus === 'connected' ? '#22c55e' : tallyStatus === 'disconnected' ? '#ef4444' : '#94a3b8',
+                boxShadow: tallyStatus === 'connected' ? '0 0 10px rgba(34, 197, 94, 0.5)' : 'none',
+                animation: tallyStatus === 'checking' ? 'pulse 2s infinite' : 'none'
+              }} />
+              <span style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: '800', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em',
+                color: tallyStatus === 'connected' ? '#166534' : tallyStatus === 'disconnected' ? '#991b1b' : '#64748b'
+              }}>
+                Tally: {tallyStatus === 'connected' ? 'Online' : tallyStatus === 'disconnected' ? 'Offline' : 'Syncing...'}
+              </span>
+            </div>
+
             <div style={{ position: 'relative', cursor: 'pointer', padding: '10px', borderRadius: '12px', background: '#f1f5f9' }}>
                <Bell size={20} color="#64748b" />
                <div style={{ position: 'absolute', top: '8px', right: '8px', width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' }} />
@@ -119,8 +193,25 @@ export default function Dashboard() {
                 <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', marginBottom: '4px' }}>Overview</h1>
                 <p style={{ color: '#64748b' }}>Real-time enterprise metrics and business health status.</p>
               </div>
-              <button style={{ padding: '12px 24px', background: '#6366f1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '700', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 Generate Quarterly Report <ArrowUpRight size={18} />
+              <button 
+                disabled={isGenerating}
+                onClick={handleGenerateReport}
+                style={{ 
+                  padding: '12px 24px', 
+                  background: isGenerating ? '#94a3b8' : '#6366f1', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  fontWeight: '700', 
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.4)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px',
+                  cursor: isGenerating ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                 {isGenerating ? 'Generating...' : 'Generate Quarterly Report'} <ArrowUpRight size={18} />
               </button>
             </div>
 

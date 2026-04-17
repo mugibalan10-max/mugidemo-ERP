@@ -4,16 +4,7 @@ const { prisma } = require("../lib/prisma");
 const syncInvoiceToTally = async (req, res) => {
     try {
         const result = await tallyService.pushSalesToTally(req.body);
-        await prisma.tallySyncLog.create({
-            data: {
-                module: 'invoice',
-                referenceId: String(req.body.number || req.body.invoiceNo || 'Unknown'),
-                status: 'success',
-                // Tally usually returns a string response in XML format
-                response: typeof result === 'string' ? result : JSON.stringify(result)
-            }
-        });
-        res.json({ success: true, message: "Synced to Tally", data: result });
+        res.json({ success: true, message: "Queued for Tally Sync", data: result });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
@@ -24,11 +15,40 @@ const manualSyncInvoice = async (req, res) => {
         const { invoiceId } = req.body;
         const invoice = await prisma.invoice.findUnique({ where: { id: parseInt(invoiceId) } });
         if (!invoice) return res.status(404).json({ error: "Invoice not found" });
-        const tallyResponse = await tallyService.pushSalesToTally(invoice);
-        await tallyService.updateSyncStatus(invoiceId, "Invoice", "Success");
-        res.json({ message: "Manual sync successful", tallyResponse });
+        const result = await tallyService.pushSalesToTally(invoice);
+        res.json({ message: "Invoice added to sync queue", result });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+const getSyncStatus = async (req, res) => {
+    try {
+        const { entityId } = req.params;
+        const logs = await prisma.syncQueue.findMany({
+            where: { entityId: entityId },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json({ success: true, data: logs });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+const manualRetry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.syncQueue.update({
+            where: { id: id },
+            data: {
+                status: "QUEUED",
+                retryCount: 0,
+                nextRetryAt: null
+            }
+        });
+        res.json({ success: true, message: "Retry queued successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
 };
 
@@ -138,6 +158,8 @@ module.exports = {
     getPurchase,
     getProfitLoss,
     getStock,
-    getDashboardSummary
+    getDashboardSummary,
+    getSyncStatus,
+    manualRetry
 };
 

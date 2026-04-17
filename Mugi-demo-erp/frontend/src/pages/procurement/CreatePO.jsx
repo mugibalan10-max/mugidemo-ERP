@@ -205,7 +205,7 @@ export default function CreatePO() {
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                              <span style={{ fontWeight: '600' }}>Vendor:</span>
-                             <span>{vendors.find(v => v.id == formData.vendorId)?.vendorName}</span>
+                             <span>{vendors.find(v => v.id === formData.vendorId)?.vendorName}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                              <span style={{ fontWeight: '600' }}>Expected:</span>
