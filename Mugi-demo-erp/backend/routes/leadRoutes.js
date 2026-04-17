@@ -110,6 +110,32 @@ router.put("/:id/status", async (req, res) => {
     }
 });
 
+// POST Create new customer directly
+router.get("/customers", async (req, res) => {
+    try {
+        const customers = await prisma.customer.findMany({
+            orderBy: { id: 'desc' }
+        });
+        res.json(customers);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
+router.post("/customers", async (req, res) => {
+    try {
+        const { name, email, phone, gstNumber, address } = req.body;
+        const newCustomer = await prisma.customer.create({
+            data: { name, email, phone, gstNumber, address }
+        });
+        res.status(201).json(newCustomer);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
+
 // GET Activity Logs (useful for verification)
 router.get("/logs", async (req, res) => {
     try {

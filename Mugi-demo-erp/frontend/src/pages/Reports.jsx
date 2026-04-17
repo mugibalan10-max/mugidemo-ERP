@@ -22,7 +22,8 @@ export default function Reports() {
     { id: 'employees', name: 'Employees', icon: '👥' },
     { id: 'products', name: 'Inventory', icon: '📦' },
     { id: 'payroll', name: 'Payroll', icon: '🏦' },
-    { id: 'logs', name: 'Automation Logs', icon: '🤖' }
+    { id: 'logs', name: 'Automation Logs', icon: '🤖' },
+    { id: 'tally-sync', name: 'Tally Sync', icon: '🔄' }
   ];
 
   useEffect(() => {
@@ -68,11 +69,41 @@ export default function Reports() {
           <tbody>
             {data.map((row, i) => (
               <tr key={i} style={{ borderTop: `1px solid ${theme.border}`, transition: 'background 0.2s' }}>
-                {columns.map(col => (
-                  <td key={col} style={{ padding: '16px 24px', fontSize: '0.9rem', color: theme.textMain }}>
-                    {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col])}
-                  </td>
-                ))}
+                {columns.map(col => {
+                  let cellContent = typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col]);
+                  let customStyle = { padding: '16px 24px', fontSize: '0.9rem', color: theme.textMain };
+
+                  if (col === 'status' && activeTab === 'tally-sync') {
+                    const statusColors = {
+                      'QUEUED': { bg: '#fef3c7', text: '#92400e', label: '🟡 Queued' },
+                      'PROCESSING': { bg: '#dbeafe', text: '#1e40af', label: '🔵 Syncing...' },
+                      'SUCCESS': { bg: '#dcfce7', text: '#166534', label: '🟢 Synced' },
+                      'FAILED': { bg: '#fee2e2', text: '#991b1b', label: '🔴 Failed' }
+                    };
+                    const config = statusColors[row[col]] || { bg: '#f1f5f9', text: '#475569', label: row[col] };
+                    return (
+                      <td key={col} style={customStyle}>
+                        <span style={{ 
+                          padding: '4px 12px', 
+                          borderRadius: '20px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: '700', 
+                          background: config.bg, 
+                          color: config.text,
+                          display: 'inline-block'
+                        }}>
+                          {config.label}
+                        </span>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td key={col} style={customStyle}>
+                      {cellContent}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

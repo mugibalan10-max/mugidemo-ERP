@@ -126,9 +126,9 @@ export default function Leads() {
   };
 
   return (
-    <div style={containerStyle}>
+    <div style={{ ...containerStyle, height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div style={mainStyle}>
+      <div style={{ ...mainStyle, overflowY: 'auto' }}>
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>Leads Management</h1>
           <p style={{ color: '#94a3b8' }}>Track and manage your business prospects efficiently <span style={{ color: '#6366f1', fontWeight: '700' }}>(CRM AI Automation Enabled)</span>.</p>

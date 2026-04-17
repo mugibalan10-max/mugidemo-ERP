@@ -59,4 +59,47 @@ router.get("/logs", async (req, res) => {
   }
 });
 
+router.get("/tally-sync", async (req, res) => {
+  try {
+    const data = await prisma.syncQueue.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(500).send("Error fetching tally sync logs");
+  }
+});
+
+router.get("/quarterly", async (req, res) => {
+  try {
+    const now = new Date();
+    const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    
+    const invoices = await prisma.invoice.aggregate({
+      where: { createdAt: { gte: quarterStart } },
+      _sum: { total: true },
+      _count: true
+    });
+
+    const collections = await prisma.payment.aggregate({
+      where: { paymentDate: { gte: quarterStart }, status: 'Success' },
+      _sum: { amount: true }
+    });
+
+    res.json({
+      success: true,
+      period: `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`,
+      summary: {
+        totalRevenue: invoices._sum.total || 0,
+        invoiceCount: invoices._count || 0,
+        totalCollected: collections._sum.amount || 0,
+        outstanding: (invoices._sum.total || 0) - (collections._sum.amount || 0)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

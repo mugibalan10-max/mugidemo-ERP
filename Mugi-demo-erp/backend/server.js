@@ -117,6 +117,9 @@ app.use("/api/task-manager", taskRoutes);
 app.use("/api/procurement", procurementRoutes);
 app.use("/api/finance", financeRoutes);
 
+// Start Background Workers
+require("./workers/tallySync.worker");
+
 // Server Listen
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

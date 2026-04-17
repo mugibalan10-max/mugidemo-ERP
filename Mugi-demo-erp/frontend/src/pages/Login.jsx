@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, ShieldCheck, Globe, Zap } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, Globe, Zap, AlertCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -23,7 +24,7 @@ export default function Login() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.user.role);
         localStorage.setItem("user", JSON.stringify(data.user));
-        window.location.href = "/";
+        window.location.href = "/dashboard";
       } else {
         setError(data.error || "Login failed. Please try again.");
       }
@@ -95,6 +96,24 @@ export default function Login() {
              <h2 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Welcome Back</h2>
              <p style={{ color: '#64748b', fontWeight: '500' }}>Sign in to your enterprise workstation.</p>
           </div>
+
+          {error && (
+            <div style={{ 
+              padding: '12px 16px', 
+              background: '#fef2f2', 
+              border: '1px solid #fee2e2', 
+              borderRadius: '12px', 
+              color: '#ef4444', 
+              fontSize: '0.85rem', 
+              fontWeight: '600',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>

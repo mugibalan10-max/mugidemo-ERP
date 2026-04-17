@@ -13,6 +13,8 @@ router.get("/summary", tallyController.getDashboardSummary);
 
 router.post("/sync/invoice", tallyController.syncInvoiceToTally);
 router.post("/sync/manual", tallyController.manualSyncInvoice);
+router.get("/sync/status/:entityId", tallyController.getSyncStatus);
+router.post("/sync/retry/:id", tallyController.manualRetry);
 
 module.exports = router;
 

@@ -2,25 +2,37 @@ const tallyClient = require("./tally.client");
 const xmlBuilder = require("./tally.xmlBuilder");
 const { prisma } = require("../lib/prisma");
 
+const addToSyncQueue = async (data) => {
+    return await prisma.syncQueue.create({
+        data: {
+            ...data,
+            status: "QUEUED"
+        }
+    });
+};
+
 const pushSalesToTally = async (invoice) => {
-    const mappedData = {
-        date: invoice.date || new Date(invoice.createdAt || Date.now()).toISOString().slice(0, 10).replace(/-/g, ""),
-        customer: invoice.customer || invoice.customerName,
-        number: invoice.number || invoice.invoiceNo,
-        amount: invoice.amount || invoice.total
-    };
-    const xml = xmlBuilder.buildSalesXML(mappedData);
-    return await tallyClient.sendToTally(xml);
+    return await addToSyncQueue({
+        entityType: "invoice",
+        entityId: invoice.invoiceNo || String(invoice.id),
+        payload: invoice
+    });
 };
 
 const syncPayment = async (payment, customerName) => {
-    const xml = xmlBuilder.buildReceiptXML(payment, customerName);
-    return await tallyClient.sendToTally(xml);
+    return await addToSyncQueue({
+        entityType: "payment",
+        entityId: String(payment.id),
+        payload: { ...payment, customerName }
+    });
 };
 
 const syncStock = async (product) => {
-    const xml = xmlBuilder.buildStockXML(product);
-    return await tallyClient.sendToTally(xml);
+    return await addToSyncQueue({
+        entityType: "stock",
+        entityId: product.sku || String(product.id),
+        payload: product
+    });
 };
 
 const fetchLedgers = async () => {
@@ -152,6 +164,7 @@ const updateSyncStatus = async (recordId, module, status) => {
 };
 
 module.exports = { 
+    addToSyncQueue,
     pushSalesToTally, 
     syncPayment, 
     syncStock,

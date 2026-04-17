@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -23,14 +23,30 @@ import {
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const scrollRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const userRole = localStorage.getItem('role') || 'admin';
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('sidebar-scroll');
+    if (savedScroll && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(savedScroll, 10);
+    }
+  }, []);
+
+  // Save scroll position on interaction
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      sessionStorage.setItem('sidebar-scroll', scrollRef.current.scrollTop);
+    }
+  };
 
   const menuSections = [
     {
       title: "OVERVIEW",
       items: [
-        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
+        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
       ]
     },
     {
@@ -120,7 +136,11 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation Sections */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingRight: '4px' }}>
+      <div 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingRight: '4px' }}
+      >
         {menuSections.map((section, sidx) => {
           const filteredItems = section.items.filter(i => i.roles.includes(userRole));
           if (filteredItems.length === 0) return null;

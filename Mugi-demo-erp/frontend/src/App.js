@@ -19,29 +19,35 @@ import VendorBills from "./pages/finance/VendorBills";
 import VendorLedger from "./pages/finance/VendorLedger";
 import AgingDashboard from "./pages/finance/AgingDashboard";
 
+import LandingPage from "./pages/LandingPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/invoices" element={<Invoice />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/tally-dashboard" element={<TallyDashboard />} />
-        <Route path="/tasks" element={<TaskManager />} />
-        <Route path="/employees" element={<Employees />} />
-        <Route path="/payroll" element={<Payroll />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/vendors" element={<Vendors />} />
-        <Route path="/purchase-view" element={<PurchaseOrders />} />
-        <Route path="/create-po" element={<CreatePO />} />
-        <Route path="/grn" element={<GRN />} />
-        <Route path="/vendor-bills" element={<VendorBills />} />
-        <Route path="/vendor-ledger" element={<VendorLedger />} />
-        <Route path="/aging-dashboard" element={<AgingDashboard />} />
-        <Route path="/home" element={<Home />} />
+        
+        {/* Protected ERP Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+        <Route path="/invoices" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+        <Route path="/tally-dashboard" element={<ProtectedRoute><TallyDashboard /></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><TaskManager /></ProtectedRoute>} />
+        <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+        <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/vendors" element={<ProtectedRoute><Vendors /></ProtectedRoute>} />
+        <Route path="/purchase-view" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
+        <Route path="/create-po" element={<ProtectedRoute><CreatePO /></ProtectedRoute>} />
+        <Route path="/grn" element={<ProtectedRoute><GRN /></ProtectedRoute>} />
+        <Route path="/vendor-bills" element={<ProtectedRoute><VendorBills /></ProtectedRoute>} />
+        <Route path="/vendor-ledger" element={<ProtectedRoute><VendorLedger /></ProtectedRoute>} />
+        <Route path="/aging-dashboard" element={<ProtectedRoute><AgingDashboard /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
