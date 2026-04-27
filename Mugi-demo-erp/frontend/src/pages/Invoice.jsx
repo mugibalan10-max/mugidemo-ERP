@@ -1,52 +1,107 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import Sidebar from "../components/Sidebar";
 
 /**
- * React Invoice Page — Step 4
- * Features real-time tax calculation and premium Glassmorphic ERP design.
+ * React Invoice Page — Enterprise Refactor
+ * Features multi-item billing, inventory validation, and real-time reconciliation.
  */
 export default function Invoice() {
-  const [data, setData] = useState({
-    customer_name: "",
-    subtotal: "",
-    gst_percent: 18,
+  const [formData, setFormData] = useState({
+    customerId: "",
+    items: [{ productId: "", quantity: 1, price: 0 }]
   });
+  
   const [invoices, setInvoices] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Real-time calculation logic
-  const subtotalNum = Number(data.subtotal) || 0;
-  const gstPercentNum = Number(data.gst_percent) || 0;
-  const gst_amount = (subtotalNum * gstPercentNum) / 100;
-  const total = subtotalNum + gst_amount;
+  // Totals Calculation
+  const subtotal = formData.items.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.price)), 0);
+  const gst_amount = (subtotal * 18) / 100; // Standard 18% GST
+  const total = subtotal + gst_amount;
 
   useEffect(() => {
+    fetchInitialData();
     fetchInvoices();
   }, []);
 
+  const fetchInitialData = async () => {
+    try {
+      const [custRes, prodRes] = await Promise.all([
+        api.get("/api/customers"),
+        api.get("/api/products")
+      ]);
+      setCustomers(custRes.data);
+      setProducts(prodRes.data);
+    } catch (err) {
+      console.error("Fetch Error:", err);
+    }
+  };
+
   const fetchInvoices = async () => {
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/invoices`);
+      const res = await api.get("/api/invoices");
       setInvoices(res.data);
     } catch (err) {
       console.error("Error fetching invoices:", err);
     }
   };
 
+  const addItem = () => {
+    setFormData({
+      ...formData,
+      items: [...formData.items, { productId: "", quantity: 1, price: 0 }]
+    });
+  };
+
+  const updateItem = (index, field, value) => {
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
+    
+    // Auto-fill price if product is selected
+    if (field === "productId") {
+      const selectedProd = products.find(p => String(p.id) === String(value));
+      if (selectedProd) {
+        newItems[index].price = selectedProd.price;
+      }
+    }
+    
+    setFormData({ ...formData, items: newItems });
+  };
+
+  const removeItem = (index) => {
+    const newItems = formData.items.filter((_, i) => i !== index);
+    setFormData({ ...formData, items: newItems });
+  };
+
   const createInvoice = async () => {
-    if (!data.customer_name || !data.subtotal) {
-      return alert("Please enter both Customer Name and Subtotal.");
+    if (!formData.customerId || formData.items.some(i => !i.productId)) {
+      return setError("Please select a customer and products for all items.");
     }
     
     setLoading(true);
+    setError("");
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/invoices`, data);
-      alert("✅ Invoice Created! ID: " + res.data.invoice_no);
-      setData({ customer_name: "", subtotal: "", gst_percent: 18 }); // Reset form
-      fetchInvoices(); // Refresh list
+      const payload = {
+        customerId: parseInt(formData.customerId),
+        items: formData.items.map(i => ({
+            productId: parseInt(i.productId),
+            quantity: parseInt(i.quantity),
+            price: parseFloat(i.price)
+        }))
+      };
+
+      const res = await api.post("/api/invoices", payload);
+      alert("✅ Invoice Created Successfully!");
+      setFormData({ customerId: "", items: [{ productId: "", quantity: 1, price: 0 }] });
+      fetchInvoices();
     } catch (err) {
-      alert("❌ Failed to create invoice. Please check the backend.");
+      const msg = err.response?.data?.error || "Failed to create invoice. Please check stock levels.";
+      setError(msg);
+      alert("❌ " + msg);
     } finally {
       setLoading(false);
     }
@@ -55,7 +110,7 @@ export default function Invoice() {
   const containerStyle = {
     display: 'flex',
     minHeight: '100vh',
-    background: '#0f172a', // Dark theme for premium look
+    background: '#0f172a',
     color: '#f1f5f9',
     fontFamily: "'Inter', sans-serif"
   };
@@ -79,34 +134,24 @@ export default function Invoice() {
   };
 
   const inputStyle = {
-    padding: '16px',
-    borderRadius: '14px',
+    padding: '12px',
+    borderRadius: '10px',
     background: 'rgba(15, 23, 42, 0.6)',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     color: '#fff',
     width: '100%',
-    fontSize: '1rem',
-    marginTop: '10px',
-    outline: 'none',
-    transition: 'all 0.3s ease'
+    fontSize: '0.9rem',
+    outline: 'none'
   };
 
   const labelStyle = {
-    fontSize: '0.85rem',
-    fontWeight: '700',
+    fontSize: '0.75rem',
+    fontWeight: '800',
     color: '#94a3b8',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em'
-  };
-
-  const retrySync = async (id) => {
-    try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/sync`, { invoiceId: id });
-      alert(response.data.message);
-      fetchInvoices();
-    } catch (err) {
-      alert("Manual sync failed. Check if Tally is running.");
-    }
+    letterSpacing: '0.05em',
+    marginBottom: '8px',
+    display: 'block'
   };
 
   return (
@@ -114,44 +159,72 @@ export default function Invoice() {
       <Sidebar />
       <div style={mainStyle}>
         <div style={{ marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>Create Invoice</h1>
-          <p style={{ color: '#94a3b8' }}>Generate instant billing and track your receivables globally.</p>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '8px' }}>Raise Sales Invoice</h1>
+          <p style={{ color: '#94a3b8' }}>Multi-item billing with automated inventory and Tally synchronization.</p>
         </div>
 
         <div style={glassCardStyle}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '32px' }}>
-            <div>
-              <label style={labelStyle}>Customer Name</label>
-              <input
-                placeholder="e.g., Apple Inc."
-                style={inputStyle}
-                value={data.customer_name}
-                onChange={(e) => setData({ ...data, customer_name: e.target.value })}
-              />
+          {error && <div style={{ background: '#ef444422', border: '1px solid #ef444455', color: '#ef4444', padding: '16px', borderRadius: '12px', marginBottom: '24px', fontWeight: '700' }}>⚠️ {error}</div>}
+          
+          {/* Customer Selection */}
+          <div style={{ marginBottom: '32px' }}>
+            <label style={labelStyle}>Select Client</label>
+            <select 
+                style={{ ...inputStyle, padding: '16px' }}
+                value={formData.customerId}
+                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+            >
+                <option value="">-- Choose Customer --</option>
+                {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                ))}
+            </select>
+          </div>
+
+          {/* Items Table */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 50px', gap: '16px', padding: '0 8px 8px' }}>
+                <span style={labelStyle}>Product / SKU</span>
+                <span style={labelStyle}>Qty</span>
+                <span style={labelStyle}>Unit Price (₹)</span>
+                <span></span>
             </div>
-            <div>
-              <label style={labelStyle}>Subtotal (₹)</label>
-              <input
-                type="number"
-                placeholder="1000.00"
-                style={inputStyle}
-                value={data.subtotal}
-                onChange={(e) => setData({ ...data, subtotal: e.target.value })}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Tax Bracket (GST %)</label>
-              <select
-                style={inputStyle}
-                value={data.gst_percent}
-                onChange={(e) => setData({ ...data, gst_percent: e.target.value })}
-              >
-                <option value={5}>GST 5% (Basics)</option>
-                <option value={12}>GST 12% (Standard)</option>
-                <option value={18}>GST 18% (Services)</option>
-                <option value={28}>GST 28% (Luxury)</option>
-              </select>
-            </div>
+            
+            {formData.items.map((item, index) => (
+                <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.2fr 50px', gap: '16px', marginBottom: '12px' }}>
+                    <select 
+                        style={inputStyle}
+                        value={item.productId}
+                        onChange={(e) => updateItem(index, "productId", e.target.value)}
+                    >
+                        <option value="">-- Select Product --</option>
+                        {products.map(p => (
+                            <option key={p.id} value={p.id}>{p.productName} (Stock: {p.quantity})</option>
+                        ))}
+                    </select>
+                    <input 
+                        type="number" 
+                        style={inputStyle} 
+                        value={item.quantity}
+                        onChange={(e) => updateItem(index, "quantity", e.target.value)}
+                    />
+                    <input 
+                        type="number" 
+                        style={inputStyle} 
+                        value={item.price}
+                        onChange={(e) => updateItem(index, "price", e.target.value)}
+                    />
+                    <button 
+                        onClick={() => removeItem(index)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem' }}
+                    >✕</button>
+                </div>
+            ))}
+            
+            <button 
+                onClick={addItem}
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', color: '#94a3b8', padding: '12px', borderRadius: '10px', width: '100%', cursor: 'pointer', fontWeight: '700', marginTop: '8px' }}
+            >+ Add Line Item</button>
           </div>
 
           <div style={{ 
@@ -165,11 +238,11 @@ export default function Invoice() {
             alignItems: 'center'
           }}>
             <div>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>GST Calculations</p>
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>+ ₹{gst_amount.toFixed(2)}</p>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>GST (18% Included)</p>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: '#fff' }}>₹{gst_amount.toFixed(2)}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>Gross Total Amount</p>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8' }}>Total Payable Amount</p>
               <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: '#6366f1' }}>₹{total.toFixed(2)}</p>
             </div>
           </div>
@@ -192,47 +265,13 @@ export default function Invoice() {
               transition: 'transform 0.2s ease',
               opacity: loading ? 0.7 : 1
             }}
-            onMouseEnter={e => e.target.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.target.style.transform = 'translateY(0)'}
           >
-            {loading ? 'Confirming Transaction...' : 'Generate Invoice Record'}
+            {loading ? 'Validating Stock & Syncing...' : 'Generate Invoice Record'}
           </button>
         </div>
 
-        {/* Tally Sync Test Panel */}
-        <div style={{ ...glassCardStyle, background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-             <h2 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '1.5rem' }}>🧪</span> Tally Sync Test Panel
-             </h2>
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px' }}>
-                    <p style={labelStyle}>Manual Verification Guide</p>
-                    <ul style={{ fontSize: '0.85rem', color: '#94a3b8', paddingLeft: '20px', lineHeight: '1.6' }}>
-                        <li>Open TallyPrime ➔ Select Company</li>
-                        <li>Go to: <b>Display More Reports ➔ Day Book</b></li>
-                        <li>Verify <b>Invoice No, Party Name, and Total Amount</b></li>
-                    </ul>
-                </div>
-                {invoices.length > 0 && (
-                    <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px' }}>
-                        <p style={labelStyle}>Last Generated Invoice Sync</p>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
-                            <div>
-                                <p style={{ margin: 0, fontWeight: '700' }}>{invoices[0].invoiceNo}</p>
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Status: {invoices[0].syncStatus}</p>
-                            </div>
-                            <button 
-                                onClick={() => retrySync(invoices[0].id)}
-                                style={{ background: '#6366f1', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700' }}
-                            >Retry Sync 🔄</button>
-                        </div>
-                    </div>
-                )}
-             </div>
-        </div>
-
         {/* Recent Invoices List */}
-        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '24px' }}>Invoice History</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', marginBottom: '24px' }}>Recent Invoices</h2>
         <div style={{ 
           background: 'rgba(30, 41, 59, 0.5)', 
           backdropFilter: 'blur(10px)', 
@@ -243,27 +282,27 @@ export default function Invoice() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', fontSize: '0.85rem' }}>
-                <th style={{ padding: '20px' }}>INVOICE ID</th>
-                <th style={{ padding: '20px' }}>CLIENT</th>
-                <th style={{ padding: '20px' }}>TALLY SYNC</th>
-                <th style={{ padding: '20px' }}>GRAND TOTAL</th>
+                <th style={{ padding: '20px' }}>VOUCHER</th>
+                <th style={{ padding: '20px' }}>CUSTOMER</th>
+                <th style={{ padding: '20px' }}>STATUS</th>
+                <th style={{ padding: '20px' }}>AMOUNT</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map((inv) => (
                 <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
                   <td style={{ padding: '20px', fontWeight: '700', color: '#6366f1' }}>{inv.invoiceNo}</td>
-                  <td style={{ padding: '20px', fontWeight: '600' }}>{inv.customerName}</td>
+                  <td style={{ padding: '20px', fontWeight: '600' }}>{inv.customer?.name}</td>
                   <td style={{ padding: '20px' }}>
                     <span style={{ 
                         padding: '4px 10px', 
                         borderRadius: '6px', 
                         fontSize: '0.75rem', 
                         fontWeight: '800', 
-                        background: inv.syncStatus === 'Success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: inv.syncStatus === 'Success' ? '#10b981' : '#ef4444'
+                        background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
                     }}>
-                        {inv.syncStatus}
+                        {inv.status}
                     </span>
                   </td>
                   <td style={{ padding: '20px', fontWeight: '800', color: '#f1f5f9' }}>₹{inv.total}</td>

@@ -10,6 +10,13 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Global Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 
 app.get("/tally-data", async (req, res) => {
   try {
@@ -88,6 +95,11 @@ prisma.$connect()
   });
 
 // --- Routes Import ---
+// Health Check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", message: "Zen Finance ERP Backend is operational" });
+});
+
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const leadRoutes = require("./routes/leadRoutes");
@@ -97,13 +109,16 @@ const inventoryRoutes = require("./routes/inventoryRoutes");
 const hrRoutes = require("./routes/hrRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
+const customerRoutes = require("./routes/customerRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const procurementRoutes = require("./routes/procurementRoutes");
 const financeRoutes = require("./routes/financeRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 // --- Route Mounting ---
 app.use("/api/auth", authRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/tally", tallyRoutes);
@@ -111,6 +126,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api", inventoryRoutes);
 app.use("/api", hrRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/customers", customerRoutes);
 app.use("/api", invoiceRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/task-manager", taskRoutes);
@@ -119,6 +135,11 @@ app.use("/api/finance", financeRoutes);
 
 // Start Background Workers
 require("./workers/tallySync.worker");
+
+// --- 404 Fallback ---
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
+});
 
 // Server Listen
 const PORT = process.env.PORT || 5000;

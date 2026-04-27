@@ -25,10 +25,10 @@ router.post("/products", async (req, res) => {
 
         await tx.syncQueue.create({
             data: {
-                module: "Stock",
-                recordId: newProduct.id,
-                status: "Pending Retry",
-                syncType: "Tally"
+                entityType: "stock",
+                entityId: String(newProduct.id),
+                payload: newProduct,
+                status: "QUEUED"
             }
         });
 
@@ -48,14 +48,7 @@ router.post("/products", async (req, res) => {
         });
     }
 
-    try {
-        await tallyService.syncStock(result);
-        await tallyService.updateSyncStatus(result.id, "Stock", "Success");
-    } catch (err) {
-        console.warn("Tally Stock Sync Delayed");
-    }
-
-    res.json({ message: "Product Added & Synced", product: result });
+    res.json({ message: "Product Added to Inventory & Queued for Sync", product: result });
   } catch (err) {
     res.status(500).send("Error adding product");
   }
@@ -70,6 +63,19 @@ router.get("/products", async (req, res) => {
     res.json(products);
   } catch (err) {
     res.status(500).send("Error fetching products");
+  }
+});
+
+// Get single product by ID (Stock Check)
+router.get("/products/:id", async (req, res) => {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(500).send("Error fetching product details");
   }
 });
 

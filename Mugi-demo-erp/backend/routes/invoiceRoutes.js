@@ -4,87 +4,133 @@ const { prisma, pool } = require("../lib/prisma");
 const tallyService = require("../services/tally.service");
 const automationService = require("../services/automationService");
 const { auditLog } = require("../lib/auditLogger");
+const { protect, checkPermission } = require("../middleware/auth.middleware");
 
-// Get all customers
-router.get("/customers", async (req, res) => {
-    try {
-        const customers = await prisma.customer.findMany({
-            orderBy: { id: 'desc' }
-        });
-        res.json(customers);
-    } catch (err) {
-        res.status(500).send("Error fetching customers");
-    }
-});
-
-// Create Invoice - Automated Workflow
-router.post("/invoices", async (req, res) => {
+// Create Invoice - Automated Workflow with Stock Deduction
+router.post("/invoices", protect, checkPermission('invoices', 'create'), async (req, res) => {
   try {
-    const { customer_name, subtotal, gst_percent } = req.body;
+    const { customerId, subtotal, gst_percent, items } = req.body;
+    // items: [{ productId, quantity, unitPrice }]
+    
+    const customer_id = parseInt(customerId);
+    let sub_t = Number(subtotal) || 0;
+    
+    // Recalculate subtotal from items to ensure accuracy
+    if (items && items.length > 0) {
+        sub_t = items.reduce((acc, i) => acc + (parseInt(i.quantity || 0) * parseFloat(i.price || i.unitPrice || 0)), 0);
+    }
+
     const gst_p = Number(gst_percent) || 18;
-    const sub_t = Number(subtotal) || 0;
     const gst_amount = (sub_t * gst_p) / 100;
     const total = sub_t + gst_amount;
     const invoice_no = "INV-" + Date.now();
 
     const result = await prisma.$transaction(async (tx) => {
+        // 1. Validate Stock Availability
+        if (items && items.length > 0) {
+            for (const item of items) {
+                if (item.quantity <= 0) {
+                    throw new Error(`Invalid quantity for product ${item.productId}. Quantity must be greater than zero.`);
+                }
+                const product = await tx.product.findUnique({
+                    where: { id: parseInt(item.productId) }
+                });
+                if (!product) {
+                    throw new Error(`Product with ID ${item.productId} not found.`);
+                }
+                if (product.quantity < item.quantity) {
+                    throw new Error(`Insufficient stock for "${product.productName}". Required: ${item.quantity}, Available: ${product.quantity}`);
+                }
+            }
+        }
+
+        // 2. Create Invoice with Items
         const invoice = await tx.invoice.create({
             data: {
                 invoiceNo: invoice_no,
-                customerName: customer_name,
+                customer: { connect: { id: customer_id } },
                 subtotal: sub_t,
                 gstPercent: gst_p,
                 gstAmount: gst_amount,
-                total: total
-            }
+                total: total,
+                items: items ? {
+                    create: items.map(i => {
+                        const price = parseFloat(i.price || i.unitPrice || 0);
+                        const qty = parseInt(i.quantity || 0);
+                        return {
+                            product: { connect: { id: parseInt(i.productId) } },
+                            quantity: qty,
+                            unitPrice: price,
+                            total: qty * price
+                        };
+                    })
+                } : undefined
+            },
+            include: { items: true, customer: true }
         });
 
+        // 3. Deduct Stock & Log Movement
+        if (items && items.length > 0) {
+            for (const item of items) {
+                const updatedProduct = await tx.product.update({
+                    where: { id: parseInt(item.productId) },
+                    data: {
+                        quantity: { decrement: parseInt(item.quantity) }
+                    }
+                });
+
+                await tx.activityLog.create({
+                    data: {
+                        module: "Inventory",
+                        action: "STOCK_OUT",
+                        targetId: updatedProduct.id,
+                        message: `Stock deducted: ${item.quantity} units for ${updatedProduct.productName} via Invoice ${invoice_no}`,
+                        newData: { newQuantity: updatedProduct.quantity }
+                    }
+                });
+            }
+        }
+
+        // 4. Create Payment Record
         await tx.payment.create({
             data: {
                 invoiceNo: invoice_no,
-                customerName: customer_name,
+                customerId: customer_id,
                 amount: total,
                 status: "Pending"
             }
         });
 
+        // 5. Log Invoice Activity
         await tx.activityLog.create({
             data: {
                 module: "Invoicing",
                 action: "Generation",
                 targetId: invoice.id,
-                message: `Invoice ${invoice_no} generated for ${customer_name}. Total: ₹${total}`,
+                message: `Invoice ${invoice_no} generated for Customer ID ${customer_id}. Total: ₹${total}`,
                 newData: invoice,
                 ipAddress: req.socket.remoteAddress
             }
         });
 
+        // 6. Queue for Tally Sync
         const syncEntry = await tx.syncQueue.create({
             data: {
-                module: "Invoice",
-                recordId: invoice.id,
-                status: "Pending Retry",
-                syncType: "Tally"
+                entityType: "invoice",
+                entityId: String(invoice.id),
+                payload: invoice,
+                status: "QUEUED"
             }
         });
 
         return { invoice, syncEntry };
     });
 
-    let tallyStatus = "Pending Retry";
-    try {
-        await tallyService.pushSalesToTally(result.invoice);
-        await tallyService.updateSyncStatus(result.invoice.id, "Invoice", "Success");
-        tallyStatus = "Success";
-    } catch (tallyErr) {
-        console.warn("Tally Background Sync Delayed:", tallyErr.message);
-    }
-
     res.json({ 
-        message: "✅ Invoice Workflow Automated Successfully", 
+        message: "✅ Invoice Workflow Automated & Stock Deducted Successfully", 
         invoice_no: result.invoice.invoiceNo, 
         total: result.invoice.total,
-        syncStatus: tallyStatus
+        syncStatus: "QUEUED"
     });
 
     await automationService.runAutomation({
@@ -93,21 +139,22 @@ router.post("/invoices", async (req, res) => {
     });
   } catch (err) {
     console.error("Workflow Error:", err.message);
-    res.status(500).json({ error: "Failed to process automated invoice workflow" });
+    res.status(500).json({ error: err.message || "Failed to process automated invoice workflow" });
   }
 });
 
 // Get all invoices
-router.get("/invoices", async (req, res) => {
+router.get("/invoices", protect, checkPermission('invoices', 'view'), async (req, res) => {
     try {
         const invoices = await prisma.invoice.findMany({
+            include: { customer: true },
             orderBy: { createdAt: 'desc' }
         });
         const syncStatuses = await prisma.syncQueue.findMany({
-            where: { module: "Invoice" }
+            where: { entityType: "invoice" }
         });
         const result = invoices.map(inv => {
-            const sync = syncStatuses.find(s => s.recordId === inv.id);
+            const sync = syncStatuses.find(s => s.entityId === String(inv.id));
             return {
                 ...inv,
                 syncStatus: sync ? sync.status : "Not Queued"
@@ -122,12 +169,17 @@ router.get("/invoices", async (req, res) => {
 // Process Payment
 router.post("/payments", async (req, res) => {
   try {
-    const { invoice_no, customer_name, amount } = req.body;
-    await pool.query(
-      `INSERT INTO payments (invoice_no, customer_name, amount, status)
-       VALUES ($1,$2,$3,'Completed')`,
-      [invoice_no, customer_name, amount]
-    );
+    const { invoice_no, customerId, amount } = req.body;
+    const customer_id = parseInt(customerId);
+    
+    await prisma.payment.create({
+        data: {
+            invoiceNo: invoice_no,
+            customerId: customer_id,
+            amount: parseFloat(amount),
+            status: 'Completed'
+        }
+    });
 
     await automationService.runAutomation({
         type: "PAYMENT_DONE",
@@ -161,22 +213,27 @@ router.post("/payments", async (req, res) => {
 });
 
 // Ledger Balance Calculation
-router.get("/ledger/balance/:customerName", async (req, res) => {
+router.get("/ledger/balance/:customerId", async (req, res) => {
   try {
-    const { customerName } = req.params;
+    const customerId = parseInt(req.params.customerId);
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    
+    if (!customer) return res.status(404).json({ error: "Customer not found" });
+
     const invoices = await prisma.invoice.aggregate({
-      where: { customerName: customerName },
+      where: { customerId: customerId },
       _sum: { total: true }
     });
     const payments = await prisma.payment.findMany({
-      where: { customerName: customerName }
+      where: { customerId: customerId }
     });
     const totalPaid = payments.reduce((acc, curr) => acc + Number(curr.amount), 0);
     const totalInvoiced = Number(invoices._sum.total) || 0;
     const balance = totalInvoiced - totalPaid;
 
     res.json({
-      customerName,
+      customerId,
+      customerName: customer.name,
       totalInvoiced,
       totalPaid,
       balance,

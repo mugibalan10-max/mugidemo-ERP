@@ -11,6 +11,15 @@ async function seed() {
       await prisma.invoice.deleteMany({});
       await prisma.product.deleteMany({});
 
+      // Create some customers
+      const c1 = await prisma.customer.create({
+        data: { name: 'TechCorp Solutions', email: 'billing@techcorp.com', gstNumber: '29ABCDE1234F1Z5' }
+      });
+
+      const c2 = await prisma.customer.create({
+        data: { name: 'GlobeLink Logistics', email: 'accounts@globelink.com', gstNumber: '29FGHIJ5678K1Z5' }
+      });
+
       // Create some products
       const p1 = await prisma.product.create({
         data: { productName: 'Professional Laptop', sku: 'LP-001', quantity: 50, price: 75000 }
@@ -24,7 +33,7 @@ async function seed() {
       const inv1 = await prisma.invoice.create({
         data: {
           invoiceNo: 'INV-2024-001',
-          customerName: 'TechCorp Solutions',
+          customerId: c1.id,
           subtotal: 150000,
           gstPercent: 18,
           gstAmount: 27000,
@@ -36,7 +45,7 @@ async function seed() {
       const inv2 = await prisma.invoice.create({
         data: {
           invoiceNo: 'INV-2024-002',
-          customerName: 'GlobeLink Logistics',
+          customerId: c2.id,
           subtotal: 45000,
           gstPercent: 18,
           gstAmount: 8100,
@@ -49,7 +58,7 @@ async function seed() {
       await prisma.payment.create({
         data: {
           invoiceNo: 'INV-2024-001',
-          customerName: 'TechCorp Solutions',
+          customerId: c1.id,
           amount: 177000,
           status: 'Success'
         }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import api from '../lib/api';
 import { 
@@ -17,31 +18,33 @@ import {
 } from 'lucide-react';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalSales: 0,
     totalOrders: 0,
     totalInventory: 0,
-    pendingPayments: 0
+    pendingPayments: 0,
+    approvalQueue: [],
+    pendingCount: 0
   });
 
   const [recentLogs, setRecentLogs] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [pieData, setPieData] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [tallyStatus, setTallyStatus] = useState('checking'); // 'connected', 'disconnected', 'checking'
+  const [tallyStatus, setTallyStatus] = useState('checking'); 
 
   useEffect(() => {
     fetchDashboardData();
     checkTallyStatus();
-    const interval = setInterval(checkTallyStatus, 10000); // Check every 10s
+    const interval = setInterval(checkTallyStatus, 10000); 
     return () => clearInterval(interval);
   }, []);
 
   const checkTallyStatus = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/status`);
-      const data = await res.json();
-      setTallyStatus(data.connected ? 'connected' : 'disconnected');
+      const res = await api.get("/api/tally/status");
+      setTallyStatus(res.data.connected ? 'connected' : 'disconnected');
     } catch (err) {
       setTallyStatus('disconnected');
     }
@@ -49,42 +52,31 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/summary`);
-      const result = await res.json();
+      const res = await api.get("/api/dashboard/stats");
+      const data = res.data;
       
-      if (result.success && result.data) {
-        setStats({
-          totalSales: result.data.totalSales,
-          totalOrders: result.data.recentTransactions?.length || 0,
-          totalInventory: result.data.stockValue,
-          pendingPayments: result.data.gstSummary?.net || 0
-        });
-        
-        const mockChart = [
-          { name: 'Mon', sales: result.data.totalSales * 0.1, purchase: result.data.totalPurchase * 0.08 },
-          { name: 'Tue', sales: result.data.totalSales * 0.15, purchase: result.data.totalPurchase * 0.12 },
-          { name: 'Wed', sales: result.data.totalSales * 0.2, purchase: result.data.totalPurchase * 0.15 },
-          { name: 'Thu', sales: result.data.totalSales * 0.12, purchase: result.data.totalPurchase * 0.25 },
-          { name: 'Fri', sales: result.data.totalSales * 0.25, purchase: result.data.totalPurchase * 0.1 },
-          { name: 'Sat', sales: result.data.totalSales * 0.18, purchase: result.data.totalPurchase * 0.3 },
-        ];
-        setChartData(mockChart);
+      setStats({
+        totalSales: data.totalInvoiced,
+        totalOrders: data.purchaseOrders,
+        totalInventory: data.stockValuation,
+        pendingPayments: data.vendorPayables,
+        approvalQueue: data.approvalQueue || [],
+        pendingCount: data.pendingCount || 0
+      });
 
-        setPieData([
-          { name: 'Sales', value: result.data.totalSales, color: '#6366f1' },
-          { name: 'Purchase', value: result.data.totalPurchase, color: '#f43f5e' },
-        ]);
+      if (data.logs) {
+        setRecentLogs(data.logs);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Dashboard Fetch Error:", err);
     }
   };
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/reports/quarterly`);
-      const result = await res.json();
+      const res = await api.get("/api/reports/quarterly");
+      const result = res.data;
       
       if (result.success) {
         alert(
@@ -117,7 +109,6 @@ export default function Dashboard() {
       <Sidebar />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         
-        {/* Top Navigation Bar */}
         <header style={{
           height: '80px',
           minHeight: '80px',
@@ -140,7 +131,6 @@ export default function Dashboard() {
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            {/* Tally Connection Indicator */}
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -185,7 +175,6 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Content Area */}
         <div style={{ padding: '40px', flex: 1 }}>
           <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px' }}>
@@ -215,7 +204,6 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* KPI Section */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '40px' }}>
               {kpiData.map((kpi, idx) => (
                 <div key={idx} style={{ background: 'white', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
@@ -232,21 +220,15 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Main Dashboard Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
               
-              {/* Approval Queue */}
               <div style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: '800' }}>Critical Approval Queue</h3>
-                    <span style={{ padding: '6px 12px', background: '#fef2f2', color: '#ef4444', fontSize: '0.75rem', fontWeight: '800', borderRadius: '8px' }}>5 Pending</span>
+                    <span style={{ padding: '6px 12px', background: '#fef2f2', color: '#ef4444', fontSize: '0.75rem', fontWeight: '800', borderRadius: '8px' }}>{stats.pendingCount} Pending</span>
                  </div>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {[
-                      { type: 'PO Approval', ref: 'PO-2023-0042', amount: '₹1,42,000', user: 'Finance Lead' },
-                      { type: 'Price Override', ref: 'SKU-8822', amount: '-15%', user: 'Sales Manager' },
-                      { type: 'Leave Request', ref: 'EMP-009', amount: '3 Days', user: 'Operations Head' }
-                    ].map((app, idx) => (
+                    {(stats.approvalQueue || []).map((app, idx) => (
                       <div key={idx} style={{ padding: '20px', borderRadius: '20px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <div style={{ display: 'flex', gap: '16px' }}>
                             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={20} color="#94a3b8" /></div>
@@ -257,14 +239,24 @@ export default function Dashboard() {
                          </div>
                          <div style={{ textAlign: 'right' }}>
                             <p style={{ margin: 0, fontWeight: '800', fontSize: '0.95rem', color: '#1e293b' }}>{app.amount}</p>
-                            <button style={{ margin: '8px 0 0', background: 'transparent', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Review Now →</button>
+                            <button 
+                               onClick={() => navigate(app.link)}
+                               style={{ margin: '8px 0 0', background: 'transparent', border: 'none', color: '#6366f1', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
+                            >
+                               Review Now →
+                            </button>
                          </div>
                       </div>
                     ))}
+                    {(!stats.approvalQueue || stats.approvalQueue.length === 0) && (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                         <CheckCircle2 size={40} style={{ color: '#10b981', marginBottom: '12px' }} />
+                         <p>All clear! No pending approvals.</p>
+                      </div>
+                    )}
                  </div>
               </div>
 
-              {/* System Audit Log */}
               <div style={{ background: 'white', padding: '32px', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
                  <h3 style={{ fontSize: '1.1rem', fontWeight: '800', marginBottom: '24px' }}>Security & Audit Log</h3>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -272,7 +264,7 @@ export default function Dashboard() {
                       <div key={idx} style={{ display: 'flex', gap: '14px' }}>
                          <div style={{ 
                             width: '12px', height: '12px', borderRadius: '50%', marginTop: '6px', 
-                            background: log.action.includes('Delete') ? '#ef4444' : log.action.includes('Update') ? '#f59e0b' : '#10b981' 
+                            background: log.action?.includes('Delete') ? '#ef4444' : log.action?.includes('Update') ? '#f59e0b' : '#10b981' 
                          }} />
                          <div>
                             <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '700' }}>{log.message}</p>

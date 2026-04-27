@@ -15,18 +15,21 @@ export default function VendorLedger() {
 
   const fetchVendors = async () => {
     try {
-      const res = await api.get('/procurement/vendors');
+      const res = await api.get('/api/procurement/vendors');
       setVendors(res.data);
-    } catch (err) {}
+    } catch (err) {
+      console.error("Failed to fetch vendors", err);
+    }
   };
 
   const fetchStatement = async (vId) => {
     if (!vId) return setStatement(null);
     setLoading(true);
     try {
-      const res = await api.get(`/finance/ledger/${vId}`);
+      const res = await api.get(`/api/finance/ledger/${vId}`);
       setStatement(res.data);
     } catch (err) {
+      console.error("Failed to fetch statement", err);
       alert("Failed to fetch statement");
     } finally {
       setLoading(false);
@@ -109,11 +112,11 @@ export default function VendorLedger() {
                                <div style={{ fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   {t.credit > 0 ? <ArrowUpRight size={14} color="#6366f1" /> : <ArrowDownRight size={14} color="#10b981" />}
                                   {t.narration}
-                               </div>
+                                </div>
                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Ref: {t.referenceType} #{t.referenceId}</div>
                             </td>
-                            <td style={{ padding: '20px', color: '#10b981', fontWeight: '700' }}>{t.debit > 0 ? `₹${parseFloat(t.debit).toLocaleString()}` : '-'}</td>
-                            <td style={{ padding: '20px', color: '#6366f1', fontWeight: '700' }}>{t.credit > 0 ? `₹${parseFloat(t.credit).toLocaleString()}` : '-'}</td>
+                            <td style={{ padding: '20px', color: '#10b981', fontWeight: '700' }}>{parseFloat(t.debit) > 0 ? `₹${parseFloat(t.debit).toLocaleString()}` : '-'}</td>
+                            <td style={{ padding: '20px', color: '#6366f1', fontWeight: '700' }}>{parseFloat(t.credit) > 0 ? `₹${parseFloat(t.credit).toLocaleString()}` : '-'}</td>
                             <td style={{ padding: '20px 32px', fontWeight: '800' }}>₹{parseFloat(t.runningBalance).toLocaleString()}</td>
                          </tr>
                        ))}

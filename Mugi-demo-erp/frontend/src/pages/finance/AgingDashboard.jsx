@@ -13,16 +13,18 @@ export default function AgingDashboard() {
 
   const fetchAging = async () => {
     try {
-      const res = await api.get('/finance/reports/aging');
+      const res = await api.get('/api/finance/reports/aging');
       setAgingData(res.data);
-    } catch (err) {} finally {
+    } catch (err) {
+      console.error("Failed to fetch aging reports", err);
+    } finally {
       setLoading(false);
     }
   };
 
   const totals = agingData.reduce((acc, v) => ({
-    total: acc.total + parseFloat(v.totalOutstanding),
-    bills: acc.bills + v.outstandingBills
+    total: acc.total + parseFloat(v.totalOutstanding || 0),
+    bills: acc.bills + (v.outstandingBills || 0)
   }), { total: 0, bills: 0 });
 
   const theme = {
@@ -98,10 +100,17 @@ export default function AgingDashboard() {
                            </span>
                         </td>
                         <td style={{ padding: '24px 20px', fontWeight: '600' }}>{v.outstandingBills}</td>
-                        <td style={{ padding: '24px 20px', color: '#64748b' }}>₹{parseFloat(v.currentBalance).toLocaleString()}</td>
-                        <td style={{ padding: '24px 32px', fontWeight: '800', color: theme.textMain }}>₹{parseFloat(v.totalOutstanding).toLocaleString()}</td>
+                        <td style={{ padding: '24px 20px', color: '#64748b' }}>₹{parseFloat(v.currentBalance || 0).toLocaleString()}</td>
+                        <td style={{ padding: '24px 32px', fontWeight: '800', color: theme.textMain }}>₹{parseFloat(v.totalOutstanding || 0).toLocaleString()}</td>
                      </tr>
                    ))}
+                   {agingData.length === 0 && !loading && (
+                     <tr>
+                       <td colSpan="5" style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
+                         No outstanding payables found.
+                       </td>
+                     </tr>
+                   )}
                 </tbody>
              </table>
           </div>

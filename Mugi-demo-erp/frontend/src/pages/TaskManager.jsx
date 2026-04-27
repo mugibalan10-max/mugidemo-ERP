@@ -31,8 +31,8 @@ export default function TaskManager() {
     setLoading(true);
     try {
       const [projRes, taskRes] = await Promise.all([
-        api.get('/projects'),
-        api.get('/task-manager')
+        api.get('/api/projects'),
+        api.get('/api/task-manager')
       ]);
       setProjects(projRes.data);
       setTasks(taskRes.data);
@@ -52,11 +52,21 @@ export default function TaskManager() {
 
   const createProject = async () => {
     try {
-      await api.post('/projects', newProject);
+      await api.post('/api/projects', newProject);
       setShowProjectModal(false);
       fetchData();
     } catch (err) {
       alert("Failed to create project");
+    }
+  };
+
+  const handleApproveTask = async (id) => {
+    try {
+      await api.patch(`/api/task-manager/${id}/approve`);
+      alert("✅ Task officially approved!");
+      fetchData();
+    } catch (err) {
+      alert("Approval failed");
     }
   };
 
@@ -196,6 +206,7 @@ export default function TaskManager() {
                       <th style={{ padding: '12px' }}>ASSIGNEE</th>
                       <th style={{ padding: '12px' }}>STATUS</th>
                       <th style={{ padding: '12px' }}>PRIORITY</th>
+                      <th style={{ padding: '12px' }}>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -225,6 +236,19 @@ export default function TaskManager() {
                              fontSize: '0.7rem', fontWeight: '700', 
                              color: t.priority === 'P1' ? theme.danger : t.priority === 'P2' ? theme.warning : theme.textMuted
                            }}>{t.priority}</span>
+                        </td>
+                        <td style={{ padding: '16px 12px' }}>
+                           {t.approvalStatus === 'Pending' && (
+                             <button 
+                              onClick={() => handleApproveTask(t.id)}
+                              style={{ 
+                                padding: '4px 10px', borderRadius: '6px', border: 'none', 
+                                background: theme.primary, color: 'white', fontSize: '0.7rem', fontWeight: '800', cursor: 'pointer' 
+                              }}
+                             >
+                               Approve
+                             </button>
+                           )}
                         </td>
                       </tr>
                     ))}

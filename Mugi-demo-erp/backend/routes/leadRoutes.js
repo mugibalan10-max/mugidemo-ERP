@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
+const { protect, checkPermission } = require("../middleware/auth.middleware");
 require('dotenv').config();
 
 // GET all leads
-router.get("/", async (req, res) => {
+router.get("/", protect, checkPermission('leads', 'view'), async (req, res) => {
     try {
         const leads = await prisma.lead.findMany({
             orderBy: { id: 'desc' }
@@ -19,7 +20,7 @@ router.get("/", async (req, res) => {
 const automationService = require('../services/automationService');
 
 // POST Create new lead (AI Automation Layer: Step 1)
-router.post("/", async (req, res) => {
+router.post("/", protect, checkPermission('leads', 'manage'), async (req, res) => {
     try {
         const { name, email, phone } = req.body;
 
@@ -110,8 +111,8 @@ router.put("/:id/status", async (req, res) => {
     }
 });
 
-// POST Create new customer directly
-router.get("/customers", async (req, res) => {
+// GET all customers
+router.get("/customers", protect, checkPermission('customers', 'view'), async (req, res) => {
     try {
         const customers = await prisma.customer.findMany({
             orderBy: { id: 'desc' }
@@ -123,7 +124,7 @@ router.get("/customers", async (req, res) => {
     }
 });
 
-router.post("/customers", async (req, res) => {
+router.post("/customers", protect, checkPermission('customers', 'manage'), async (req, res) => {
     try {
         const { name, email, phone, gstNumber, address } = req.body;
         const newCustomer = await prisma.customer.create({

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import Sidebar from "../components/Sidebar";
 
 /**
@@ -22,7 +22,7 @@ export default function Leads() {
 
   const fetchLeads = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/leads`);
+      const response = await api.get("/api/leads");
       setLeadsList(response.data);
     } catch (err) {
       console.error("Error fetching leads:", err);
@@ -31,7 +31,7 @@ export default function Leads() {
 
   const updateStatus = async (id, status) => {
     try {
-      await axios.put(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/leads/${id}/status`, { status });
+      await api.put(`/api/leads/${id}/status`, { status });
       fetchLeads();
     } catch (err) {
       alert("Failed to update status");
@@ -42,7 +42,7 @@ export default function Leads() {
     if (!lead.name) return alert("Name is required");
     setLoading(true);
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/leads`, lead);
+      await api.post("/api/leads", lead);
       setLead({ name: "", email: "", phone: "" });
       alert("Lead Added Successfully");
       fetchLeads(); // Refresh list

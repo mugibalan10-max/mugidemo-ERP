@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../lib/api";
 
 /**
  * Zen Finance — Business Intelligence Dashboard
@@ -14,15 +14,14 @@ function Home() {
         sales: []
     });
     const [loading, setLoading] = useState(true);
-
     const fetchData = async () => {
         try {
-            const statusRes = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/status`);
+            const statusRes = await api.get("/api/tally/status");
             setStatus({ connected: statusRes.data.connected, checking: false });
 
             if (statusRes.data.connected) {
                 // 🟢 Standardized API Call
-                const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/tally/dashboard`);
+                const res = await api.get("/api/tally/dashboard");
                 if (res.data.success) {
                     setDashboardData(res.data.data);
                 }

@@ -12,14 +12,23 @@ router.get('/users', async (req, res) => {
                 id: true,
                 name: true,
                 email: true,
-                roleName: true,
+                role: {
+                  select: {
+                    name: true
+                  }
+                },
                 createdAt: true
             },
             orderBy: {
                 createdAt: 'desc'
             }
         });
-        res.json(users);
+        // Flatten the role for the response
+        const formattedUsers = users.map(u => ({
+          ...u,
+          roleName: u.role?.name || 'No Role'
+        }));
+        res.json(formattedUsers);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error fetching users" });
@@ -43,23 +52,30 @@ router.post('/users', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Find role by name or default to 'Employee'
+        const roleRecord = await prisma.role.findUnique({
+          where: { name: role || 'Employee' }
+        });
+
         // Insert user
         const newUser = await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
-                roleName: role || 'employee'
+                roleId: roleRecord ? roleRecord.id : null
             },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                roleName: true
+            include: {
+                role: true
             }
         });
 
-        res.status(201).json(newUser);
+        res.status(201).json({
+            id: newUser.id,
+            name: newUser.name,
+            email: newUser.email,
+            roleName: newUser.role?.name || 'No Role'
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error creating user" });

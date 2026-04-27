@@ -87,6 +87,19 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
+// Approve Task
+router.patch('/:id/approve', async (req, res) => {
+  try {
+    const task = await prisma.task.update({
+      where: { id: parseInt(req.params.id) },
+      data: { approvalStatus: 'Approved' }
+    });
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to approve task" });
+  }
+});
+
 // Time Tracking: Start Timer
 router.post('/:id/start-timer', async (req, res) => {
   try {
@@ -119,9 +132,9 @@ router.post('/:id/stop-timer', async (req, res) => {
 
     if (!activeLog) return res.status(404).json({ error: "No active timer found" });
 
-    const endTime = new Date();
-    const durationMs = endTime - activeLog.startTime;
-    const durationHours = durationMs / (1000 * 60 * 60);
+    const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+    const hourlyRate = user ? parseFloat(user.hourlyRate) : 0;
+    const sessionCost = durationHours * hourlyRate;
 
     const updatedLog = await prisma.workLog.update({
       where: { id: activeLog.id },
@@ -131,11 +144,12 @@ router.post('/:id/stop-timer', async (req, res) => {
       }
     });
 
-    // Update total actual hours on task
+    // Update total actual hours and cost on task
     await prisma.task.update({
       where: { id: parseInt(req.params.id) },
       data: {
-        actualHours: { increment: durationHours }
+        actualHours: { increment: durationHours },
+        actualCost: { increment: sessionCost }
       }
     });
 

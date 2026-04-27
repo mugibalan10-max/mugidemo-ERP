@@ -91,7 +91,7 @@ export default function Invoices() {
                    </div>
                 </td>
                 <td style={{ padding: '20px 24px' }}>
-                   <p style={{ margin: 0, fontWeight: '700', color: '#475569', fontSize: '0.9rem' }}>{inv.customerName}</p>
+                   <p style={{ margin: 0, fontWeight: '700', color: '#475569', fontSize: '0.9rem' }}>{inv.customer?.name || inv.customerName}</p>
                 </td>
                 <td style={{ padding: '20px 24px' }}>
                    <p style={{ margin: 0, fontWeight: '900', color: '#1e293b' }}>₹{parseFloat(inv.total).toLocaleString()}</p>

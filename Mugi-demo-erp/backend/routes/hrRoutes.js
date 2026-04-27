@@ -84,13 +84,18 @@ router.put("/tasks/:id", async (req, res) => {
 // Payroll
 router.post("/payroll/calculate", async (req, res) => {
   try {
-    const { employeeId, month, year, bonus, manualDeductions } = req.body;
+    const { employeeId, month, year, bonus, manualDeductions, overtimeHours, shiftAllowance } = req.body;
     const employee = await prisma.employee.findUnique({
       where: { id: parseInt(employeeId) }
     });
     if (!employee) return res.status(404).json({ error: "Employee not found" });
 
     const basicSalary = Number(employee.salary);
+    const otRate = Number(employee.overtimeRate) || 0;
+    const otHours = Number(overtimeHours) || 0;
+    const otAmount = otHours * otRate;
+    const shiftAllowanceAmt = Number(shiftAllowance) || 0;
+
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
@@ -107,16 +112,19 @@ router.post("/payroll/calculate", async (req, res) => {
     const autoDeductions = absentDays * perDaySalary;
     const totalDeductions = autoDeductions + (Number(manualDeductions) || 0);
     const bonusAmt = Number(bonus) || 0;
-    const netSalary = basicSalary - totalDeductions + bonusAmt;
+    const netSalary = basicSalary - totalDeductions + bonusAmt + otAmount + shiftAllowanceAmt;
 
     const payrollRecord = await prisma.payroll.create({
       data: {
         employeeId: parseInt(employeeId),
-        month,
+        month: String(month),
         year: parseInt(year),
         basicSalary,
         deductions: totalDeductions,
         bonus: bonusAmt,
+        overtimeHours: otHours,
+        overtimeAmount: otAmount,
+        shiftAllowance: shiftAllowanceAmt,
         netSalary,
         status: "Calculated"
       }
@@ -125,7 +133,7 @@ router.post("/payroll/calculate", async (req, res) => {
     res.json({
       message: "✅ Payroll Calculated Successfully",
       payroll: payrollRecord,
-      breakdown: { absentDays, autoDeductions, manualDeductions: Number(manualDeductions) || 0 }
+      breakdown: { absentDays, autoDeductions, otAmount, shiftAllowanceAmt }
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to calculate payroll" });

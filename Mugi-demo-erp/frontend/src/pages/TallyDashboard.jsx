@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import Sidebar from "../components/Sidebar";
 
 /**
@@ -18,28 +18,32 @@ export default function TallyDashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchTallySatus();
+    fetchTallyStatus();
   }, []);
 
-  const fetchTallySatus = async () => {
+  const fetchTallyStatus = async () => {
     try {
-      // For demo, we aggregate from our syncQueue
-      const res = await axios.get("http://localhost:5000/api/dashboard/stats");
+      const res = await api.get("/api/dashboard/stats");
+      const data = res.data;
+      
       setStats({
-        ledgerSynced: res.data.totalCustomers, // Mapped for demo
-        stockSynced: res.data.tallySynced,
-        gstSynced: res.data.tallySynced,
+        ledgerSynced: data.totalCustomers || 0,
+        stockSynced: data.tallySynced || 0,
+        gstSynced: data.tallySynced || 0,
         paymentsSynced: 0,
-        pending: res.data.tallyPending
+        pending: data.tallyPending || 0
       });
 
-      // Fetch recent logs
-      // In a real app, this would be a dedicated /api/tally/logs
-      setLogs([
-        { id: 1, module: 'Invoice', status: 'Success', time: '2 mins ago', info: 'INV-1712993401 pushed' },
-        { id: 2, module: 'Stock', status: 'Success', time: '15 mins ago', info: 'Product "MacBook Pro" synced' },
-        { id: 3, module: 'Payment', status: 'Pending Retry', time: '1 hour ago', info: 'ACK-992 connection timeout' },
-      ]);
+      // Map real sync logs from backend
+      if (data.logs) {
+        setLogs(data.logs.map(log => ({
+          id: log.id,
+          module: log.module,
+          status: log.action === 'SUCCESS' ? 'Success' : 'Pending Retry',
+          time: new Date(log.createdAt).toLocaleTimeString(),
+          info: log.message
+        })));
+      }
     } catch (err) {
       console.error("Failed to fetch Tally status");
     }
@@ -47,11 +51,21 @@ export default function TallyDashboard() {
 
   const retryAll = async () => {
     setLoading(true);
-    setTimeout(() => {
-      alert("✅ All pending records have been re-queued for synchronization.");
-      setLoading(false);
-      fetchTallySatus();
-    }, 1500);
+    try {
+        const res = await api.get("/api/tally/sync/queue");
+        const pendingItems = res.data.data.filter(i => i.status !== 'SUCCESS');
+        
+        for (const item of pendingItems) {
+            await api.post(`/api/tally/sync/retry/${item.id}`);
+        }
+        
+        alert(`✅ ${pendingItems.length} records have been re-queued for synchronization.`);
+        fetchTallyStatus();
+    } catch (err) {
+        alert("Failed to retry syncs");
+    } finally {
+        setLoading(false);
+    }
   };
 
   const containerStyle = {
@@ -153,6 +167,7 @@ export default function TallyDashboard() {
                 }}>{log.status}</span>
               </div>
             ))}
+            {logs.length === 0 && <p style={{ textAlign: 'center', color: '#64748b' }}>No sync activity recorded yet.</p>}
           </div>
         </div>
 

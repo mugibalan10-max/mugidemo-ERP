@@ -156,9 +156,37 @@ const getDashboardAnalytics = async () => {
     };
 };
 
-const updateSyncStatus = async (recordId, module, status) => {
+const fetchLedgerBalances = async () => {
+    const xml = `
+    <ENVELOPE>
+        <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
+        <BODY>
+            <EXPORTDATA>
+                <REQUESTDESC>
+                    <REPORTNAME>List of Ledgers</REPORTNAME>
+                    <STATICVARIABLES>
+                        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+                    </STATICVARIABLES>
+                </REQUESTDESC>
+            </EXPORTDATA>
+        </BODY>
+    </ENVELOPE>`;
+    const result = await tallyClient.getDataFromTally(xml);
+    const ledgersRaw = result?.ENVELOPE?.BODY?.IMPORTDATA?.REQUESTDATA?.TALLYMESSAGE || [];
+    const ledgers = Array.isArray(ledgersRaw) ? ledgersRaw : (ledgersRaw ? [ledgersRaw] : []);
+    
+    return ledgers.map(l => {
+        const ledger = l.LEDGER || l;
+        return {
+            name: ledger.NAME || "Unknown",
+            tallyBalance: Math.abs(parseFloat(ledger.CLOSINGBALANCE || 0))
+        };
+    });
+};
+
+const updateSyncStatus = async (entityId, entityType, status) => {
     return await prisma.syncQueue.updateMany({
-        where: { recordId: parseInt(recordId), module: module },
+        where: { entityId: String(entityId), entityType: entityType },
         data: { status: status }
     });
 };
@@ -169,10 +197,9 @@ module.exports = {
     syncPayment, 
     syncStock,
     updateSyncStatus,
-    fetchLedgers,
-    fetchVouchers,
     fetchProfitLoss,
     fetchStockSummary,
-    getDashboardAnalytics
+    getDashboardAnalytics,
+    fetchLedgerBalances
 };
 
