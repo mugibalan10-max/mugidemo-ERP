@@ -15,7 +15,7 @@ export default function Vendors() {
 
   const fetchVendors = async () => {
     try {
-      const res = await api.get('/procurement/vendors');
+      const res = await api.get('/api/procurement/vendors');
       setVendors(res.data);
     } catch (err) {
       console.error("Fetch error");
@@ -26,7 +26,7 @@ export default function Vendors() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/procurement/vendors', form);
+      await api.post('/api/procurement/vendors', form);
       setShowModal(false);
       setForm({ vendorName: '', gstNumber: '', phone: '', email: '', address: '' });
       fetchVendors();
@@ -34,6 +34,17 @@ export default function Vendors() {
       alert("Failed to add vendor");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this vendor? This action cannot be undone.")) {
+      try {
+        await api.delete(`/api/procurement/vendors/${id}`);
+        fetchVendors();
+      } catch (err) {
+        alert(err.response?.data?.error || "Failed to delete vendor");
+      }
     }
   };
 
@@ -75,7 +86,12 @@ export default function Vendors() {
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                      <button style={{ padding: '8px', borderRadius: '8px', border: 'none', background: '#f8fafc', color: '#64748b', cursor: 'pointer' }}><Edit size={16} /></button>
-                     <button style={{ padding: '8px', borderRadius: '8px', border: 'none', background: '#fff1f2', color: '#e11d48', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                     <button 
+                      onClick={() => handleDelete(v.id)}
+                      style={{ padding: '8px', borderRadius: '8px', border: 'none', background: '#fff1f2', color: '#e11d48', cursor: 'pointer' }}
+                     >
+                      <Trash2 size={16} />
+                     </button>
                   </div>
                 </div>
 

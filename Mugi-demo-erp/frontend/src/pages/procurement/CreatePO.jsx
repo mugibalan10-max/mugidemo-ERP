@@ -35,8 +35,8 @@ export default function CreatePO() {
   const fetchInitialData = async () => {
     try {
       const [vRes, pRes] = await Promise.all([
-        api.get('/procurement/vendors'),
-        api.get('/inventory/products')
+        api.get('/api/procurement/vendors'),
+        api.get('/api/products')
       ]);
       setVendors(vRes.data);
       setProducts(pRes.data);
@@ -65,7 +65,7 @@ export default function CreatePO() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await api.post('/procurement/po', formData);
+      await api.post('/api/procurement/po', formData);
       alert("✅ Purchase Order Created & Queued for Approval");
       window.location.href = '/purchase-view';
     } catch (err) {

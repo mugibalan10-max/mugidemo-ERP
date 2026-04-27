@@ -148,6 +148,18 @@ const getDashboardSummary = async (req, res) => {
     }
 };
 
+const getSyncQueue = async (req, res) => {
+    try {
+        const queue = await prisma.syncQueue.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        res.json({ success: true, data: queue });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
 module.exports = {
     testConnection,
     syncInvoiceToTally,
@@ -160,6 +172,7 @@ module.exports = {
     getStock,
     getDashboardSummary,
     getSyncStatus,
+    getSyncQueue,
     manualRetry
 };
 

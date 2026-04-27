@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import api from '../lib/api';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('invoices');
@@ -33,8 +34,8 @@ export default function Reports() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/reports/${activeTab}`);
-      const result = await res.json();
+      const res = await api.get(`/api/reports/${activeTab}`);
+      const result = res.data;
       if (Array.isArray(result)) {
         setData(result);
       } else {

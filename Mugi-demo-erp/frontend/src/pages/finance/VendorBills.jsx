@@ -15,7 +15,7 @@ export default function VendorBills() {
 
   const fetchBills = async () => {
     try {
-      const res = await api.get('/finance/bills');
+      const res = await api.get('/api/finance/bills');
       setBills(res.data);
     } catch (err) {
       console.error(err);
@@ -26,7 +26,7 @@ export default function VendorBills() {
 
   const approveBill = async (id) => {
     try {
-      await api.patch(`/finance/bills/${id}/approve`);
+      await api.patch(`/api/finance/bills/${id}/approve`);
       alert("✅ Bill Approved for Payment");
       fetchBills();
     } catch (err) {
@@ -37,7 +37,7 @@ export default function VendorBills() {
   const processPayment = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/finance/payments', {
+      await api.post('/api/finance/payments', {
         ...paymentForm,
         vendorId: paymentModal.vendorId,
         billId: paymentModal.id

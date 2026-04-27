@@ -21,9 +21,9 @@ export default function GRN() {
 
   const fetchOpenPOs = async () => {
     try {
-      const res = await api.get('/procurement/po');
-      // Filter for non-completed POs
-      setPurchaseOrders(res.data.filter(po => po.status !== 'Completed'));
+      const res = await api.get('/api/procurement/po');
+      // Governance Check: Only Approved or Partial POs can be received
+      setPurchaseOrders(res.data.filter(po => po.status === 'Approved' || po.status === 'Partial'));
     } catch (err) {
       console.error(err);
     }
@@ -32,7 +32,7 @@ export default function GRN() {
   const loadPODetails = async (poId) => {
     if (!poId) return setSelectedPO(null);
     try {
-      const res = await api.get(`/procurement/po/${poId}`);
+      const res = await api.get(`/api/procurement/po/${poId}`);
       setSelectedPO(res.data);
       // Map PO items to GRN items structure
       setGrnData({
@@ -66,7 +66,7 @@ export default function GRN() {
     if (!selectedPO) return alert("Please select a Purchase Order first.");
     setLoading(true);
     try {
-      await api.post('/procurement/grn', {
+      await api.post('/api/procurement/grn', {
         ...grnData,
         poId: selectedPO.id
       });

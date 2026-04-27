@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import api from '../lib/api';
 
 /**
  * Employees Page for Mugi Demo ERP
@@ -19,12 +20,11 @@ export default function Employees() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/employees");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setEmployees(data);
+      const res = await api.get("/api/employees");
+      if (Array.isArray(res.data)) {
+        setEmployees(res.data);
       } else {
-        console.error("Employees data is not an array:", data);
+        console.error("Employees data is not an array:", res.data);
         setEmployees([]);
       }
     } catch (err) {
@@ -35,12 +35,11 @@ export default function Employees() {
 
   const fetchAttendance = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/attendance");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setAttendanceRecords(data);
+      const res = await api.get("/api/attendance");
+      if (Array.isArray(res.data)) {
+        setAttendanceRecords(res.data);
       } else {
-        console.error("Attendance data is not an array:", data);
+        console.error("Attendance data is not an array:", res.data);
         setAttendanceRecords([]);
       }
     } catch (err) {
@@ -52,12 +51,8 @@ export default function Employees() {
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEmployee),
-      });
-      if (res.ok) {
+      const res = await api.post("/api/employees", newEmployee);
+      if (res.status === 201 || res.status === 200) {
         setShowAddModal(false);
         setNewEmployee({ name: '', email: '', role: '', salary: '' });
         fetchEmployees();
@@ -69,11 +64,7 @@ export default function Employees() {
 
   const markAttendance = async (employeeId, status) => {
     try {
-      await fetch("http://localhost:5000/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId, status, date: attendanceDate }),
-      });
+      await api.post("/api/attendance", { employeeId, status, date: attendanceDate });
       fetchAttendance();
     } catch (err) {
       alert("Failed to record attendance");

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
 const LedgerEngine = require('../lib/ledgerEngine');
+const procurementService = require('../services/procurementService');
+const { protect } = require('../middleware/auth.middleware');
 
 // --- VENDOR APIs ---
 
@@ -10,9 +12,8 @@ router.post('/vendors', async (req, res) => {
   try {
     const { vendorName, gstNumber, phone, email, address } = req.body;
     
-    // Auto generate Vendor Code
-    const count = await prisma.vendor.count();
-    const vendorCode = `VND-${String(count + 1).padStart(3, '0')}`;
+    // Secure Vendor Code generation (prevents collisions even after deletions)
+    const vendorCode = `VND-${Date.now().toString().slice(-6)}`;
 
     const vendor = await prisma.vendor.create({
       data: {
@@ -26,8 +27,12 @@ router.post('/vendors', async (req, res) => {
     });
     res.status(201).json(vendor);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create vendor" });
+    console.error("DEBUG: Create Vendor Error:", err);
+    res.status(500).json({ 
+      error: "Failed to create vendor", 
+      details: err.message,
+      code: err.code 
+    });
   }
 });
 
@@ -43,58 +48,53 @@ router.get('/vendors', async (req, res) => {
   }
 });
 
+// List Vendors
+router.get('/vendors', async (req, res) => {
+  try {
+    const vendors = await prisma.vendor.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(vendors);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch vendors" });
+  }
+});
+
+// Delete Vendor
+router.delete('/vendors/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if vendor has purchase orders (Business Guardrail)
+    const poCount = await prisma.purchaseOrder.count({ where: { vendorId: parseInt(id) } });
+    if (poCount > 0) {
+      return res.status(400).json({ error: "Cannot delete vendor with existing Purchase Orders. Please delete POs first or archive the vendor." });
+    }
+
+    await prisma.vendor.delete({
+      where: { id: parseInt(id) }
+    });
+
+    res.json({ message: "Vendor deleted successfully" });
+  } catch (err) {
+    console.error("DEBUG: Delete Vendor Error:", err);
+    res.status(500).json({ error: "Failed to delete vendor", details: err.message });
+  }
+});
+
 // --- PURCHASE ORDER APIs ---
 
 // Create PO
-router.post('/po', async (req, res) => {
+router.post('/po', protect, async (req, res) => {
   try {
-    const { vendorId, items, expectedDate, remarks } = req.body;
-    // items: [{ productId, quantity, unitPrice, taxPercent }]
-
-    // Auto generate PO number
-    const count = await prisma.purchaseOrder.count();
-    const poNumber = `PO-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
-
-    let totalAmount = 0;
-    let totalTax = 0;
-
-    const formattedItems = items.map(item => {
-      const subtotal = item.quantity * item.unitPrice;
-      const tax = (subtotal * item.taxPercent) / 100;
-      const total = subtotal + tax;
-      
-      totalAmount += total;
-      totalTax += tax;
-
-      return {
-        productId: parseInt(item.productId),
-        quantity: parseInt(item.quantity),
-        unitPrice: parseFloat(item.unitPrice),
-        taxPercent: parseFloat(item.taxPercent),
-        total: total
-      };
+    const po = await procurementService.createPurchaseOrder({
+      ...req.body,
+      userId: req.user?.id
     });
-
-    const po = await prisma.purchaseOrder.create({
-      data: {
-        poNumber,
-        vendorId: parseInt(vendorId),
-        expectedDate: expectedDate ? new Date(expectedDate) : null,
-        totalAmount,
-        taxAmount: totalTax,
-        remarks,
-        status: 'Draft',
-        items: {
-          create: formattedItems
-        }
-      },
-      include: { items: true }
-    });
-
     res.status(201).json(po);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create Purchase Order" });
+    console.error("DEBUG: PO Creation Error:", err.message);
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -128,7 +128,7 @@ router.get('/po/:id', async (req, res) => {
 });
 
 // Request Approval for PO
-router.patch('/po/:id/request-approval', async (req, res) => {
+router.patch('/po/:id/request-approval', protect, async (req, res) => {
   try {
     const po = await prisma.purchaseOrder.update({
       where: { id: parseInt(req.params.id) },
@@ -140,16 +140,23 @@ router.patch('/po/:id/request-approval', async (req, res) => {
   }
 });
 
-// Approve PO
-router.patch('/po/:id/approve', async (req, res) => {
+// Approve PO (Triggers Stock Reservation)
+router.patch('/po/:id/approve', protect, async (req, res) => {
   try {
-    const po = await prisma.purchaseOrder.update({
-      where: { id: parseInt(req.params.id) },
-      data: { status: 'Approved' }
-    });
+    const po = await procurementService.approvePurchaseOrder(req.params.id, req.user?.id);
     res.json(po);
   } catch (err) {
-    res.status(500).json({ error: "Failed to approve PO" });
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Cancel PO (Releases Reservation)
+router.post('/po/:id/cancel', protect, async (req, res) => {
+  try {
+    const po = await procurementService.cancelPurchaseOrder(req.params.id, req.user?.id);
+    res.json(po);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -159,20 +166,18 @@ router.patch('/po/:id/approve', async (req, res) => {
 router.post('/grn', async (req, res) => {
   try {
     const { poId, receivedDate, warehouse, receivedBy, remarks, items } = req.body;
-    // items: [{ productId, orderedQty, receivedQty, damagedQty }]
-
-    // Auto generate GRN number
-    const count = await prisma.gRN.count();
-    const grnNumber = `GRN-${String(count + 1).padStart(4, '0')}`;
-
-    // --- GOVERNANCE CHECK ---
-    const po = await prisma.purchaseOrder.findUnique({ where: { id: parseInt(poId) } });
-    if (po.status !== 'Approved' && po.status !== 'Partially Received') {
-       return res.status(403).json({ error: "Governance Violation: Goods can only be received against APPROVED Purchase Orders." });
-    }
 
     const grn = await prisma.$transaction(async (tx) => {
-      // 1. Create GRN
+      // 1. Governance Check
+      const po = await tx.purchaseOrder.findUnique({ where: { id: parseInt(poId) } });
+      if (po.status !== 'Approved' && po.status !== 'Partial') {
+         throw new Error("Governance Violation: Goods can only be received against APPROVED Purchase Orders.");
+      }
+
+      // 2. Create GRN
+      const count = await tx.gRN.count();
+      const grnNumber = `GRN-${String(count + 1).padStart(4, '0')}`;
+      
       const newGrn = await tx.gRN.create({
         data: {
           grnNumber,
@@ -193,37 +198,26 @@ router.post('/grn', async (req, res) => {
         }
       });
 
-      // 2. Update Inventory Stock
+      // 3. Update Inventory (Reservation -> Physical)
       for (const item of items) {
         await tx.product.update({
           where: { id: parseInt(item.productId) },
           data: {
-            quantity: { increment: parseInt(item.receivedQty) }
+            quantity: { increment: parseInt(item.receivedQty) },
+            incomingStock: { decrement: parseInt(item.receivedQty) } // Release reservation
           }
         });
       }
 
-      // 3. Update PO Status
+      // 4. Update PO Status
       const allReceived = items.every(i => parseInt(i.receivedQty) >= parseInt(i.orderedQty));
       await tx.purchaseOrder.update({
         where: { id: parseInt(poId) },
-        data: {
-          status: allReceived ? 'Completed' : 'Partially Received'
-        }
+        data: { status: allReceived ? 'Completed' : 'Partial' }
       });
 
-      // 4. Log Activity
-      await tx.activityLog.create({
-        data: {
-          module: 'Procurement',
-          action: 'GRN_RECEIVED',
-          message: `Received ${grnNumber} for PO ${poId}`,
-          targetId: newGrn.id
-        }
-      });
-
-      // 5. AUTO FINANCE POSTING: Create Bill & Update Ledger
-      await LedgerEngine.createBillFromGRN(newGrn);
+      // 5. Finance Posting
+      await LedgerEngine.createBillFromGRN(newGrn, tx);
 
       return newGrn;
     });
@@ -231,7 +225,7 @@ router.post('/grn', async (req, res) => {
     res.status(201).json(grn);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to receive goods (GRN)" });
+    res.status(400).json({ error: err.message });
   }
 });
 

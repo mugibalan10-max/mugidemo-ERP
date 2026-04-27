@@ -1,4 +1,4 @@
-const { prisma } = require('./prisma');
+const { prisma: globalPrisma } = require('./prisma');
 
 /**
  * Enterprise Ledger Posting Engine
@@ -8,54 +8,55 @@ class LedgerEngine {
   
   /**
    * Post a transaction to a Vendor's Ledger
-   * @param {Object} params - { vendorId, referenceType, referenceId, debit, credit, narration }
+   * @param {Object} params - { vendorId, referenceType, referenceId, debit, credit, narration, tx }
    */
-  static async postVendorTransaction({ vendorId, referenceType, referenceId, debit = 0, credit = 0, narration }) {
-    return await prisma.$transaction(async (tx) => {
-      
-      // 1. Get or Create Ledger
-      let ledger = await tx.vendorLedger.findUnique({
-        where: { vendorId: parseInt(vendorId) }
-      });
-
-      if (!ledger) {
-        ledger = await tx.vendorLedger.create({
-          data: { vendorId: parseInt(vendorId), currentBalance: 0 }
-        });
-      }
-
-      // 2. Calculate New Balance
-      // Current Balance increases with Credit (Liability) and decreases with Debit (Payment)
-      const newBalance = parseFloat(ledger.currentBalance) + parseFloat(credit) - parseFloat(debit);
-
-      // 3. Create Transaction Entry
-      const transaction = await tx.vendorTransaction.create({
-        data: {
-          vendorId: parseInt(vendorId),
-          referenceType,
-          referenceId: referenceId ? parseInt(referenceId) : null,
-          debit: parseFloat(debit),
-          credit: parseFloat(credit),
-          runningBalance: newBalance,
-          narration
-        }
-      });
-
-      // 4. Update Ledger
-      await tx.vendorLedger.update({
-        where: { id: ledger.id },
-        data: { currentBalance: newBalance }
-      });
-
-      return transaction;
+  static async postVendorTransaction({ vendorId, referenceType, referenceId, debit = 0, credit = 0, narration, tx }) {
+    const prisma = tx || globalPrisma;
+    
+    // 1. Get or Create Ledger
+    let ledger = await prisma.vendorLedger.findUnique({
+      where: { vendorId: parseInt(vendorId) }
     });
+
+    if (!ledger) {
+      ledger = await prisma.vendorLedger.create({
+        data: { vendorId: parseInt(vendorId), currentBalance: 0 }
+      });
+    }
+
+    // 2. Calculate New Balance
+    const newBalance = parseFloat(ledger.currentBalance) + parseFloat(credit) - parseFloat(debit);
+
+    // 3. Create Transaction Entry
+    const transaction = await prisma.vendorTransaction.create({
+      data: {
+        vendorId: parseInt(vendorId),
+        referenceType,
+        referenceId: referenceId ? parseInt(referenceId) : null,
+        debit: parseFloat(debit),
+        credit: parseFloat(credit),
+        runningBalance: newBalance,
+        narration
+      }
+    });
+
+    // 4. Update Ledger
+    await prisma.vendorLedger.update({
+      where: { id: ledger.id },
+      data: { currentBalance: newBalance }
+    });
+
+    return transaction;
   }
 
   /**
    * Auto-generate a Vendor Bill from a GRN
    * @param {Object} grn - The GRN object from Prisma
+   * @param {Object} tx - Optional Prisma transaction instance
    */
-  static async createBillFromGRN(grn) {
+  static async createBillFromGRN(grn, tx) {
+    const prisma = tx || globalPrisma;
+
     // 1. Calculate Total from GRN PoItems
     const po = await prisma.purchaseOrder.findUnique({
       where: { id: grn.poId },
@@ -85,7 +86,8 @@ class LedgerEngine {
       referenceType: 'Bill',
       referenceId: bill.id,
       credit: po.totalAmount,
-      narration: `Bill ${billNumber} generated against GRN ${grn.grnNumber}`
+      narration: `Bill ${billNumber} generated against GRN ${grn.grnNumber}`,
+      tx: prisma
     });
 
     return bill;

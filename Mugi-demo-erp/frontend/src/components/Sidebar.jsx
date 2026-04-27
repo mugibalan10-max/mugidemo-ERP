@@ -25,7 +25,9 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const userRole = localStorage.getItem('role') || 'admin';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = user.role || 'employee';
+  const userPermissions = user.permissions || [];
 
   // Restore scroll position on mount
   useEffect(() => {
@@ -46,42 +48,42 @@ export default function Sidebar() {
     {
       title: "OVERVIEW",
       items: [
-        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', roles: ['admin', 'sales', 'inventory', 'hr', 'employee'] },
+        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard', permission: 'dashboard:view' },
       ]
     },
     {
       title: "COMMERCIAL",
       items: [
-        { name: 'Leads', icon: <Target size={20} />, path: '/leads', roles: ['admin', 'sales'] },
-        { name: 'Customers', icon: <Users size={20} />, path: '/customers', roles: ['admin', 'sales'] },
-        { name: 'Invoices', icon: <FileText size={20} />, path: '/invoices', roles: ['admin', 'sales'] },
+        { name: 'Leads', icon: <Target size={20} />, path: '/leads', permission: 'leads:view' },
+        { name: 'Customers', icon: <Users size={20} />, path: '/customers', permission: 'customers:view' },
+        { name: 'Invoices', icon: <FileText size={20} />, path: '/invoices', permission: 'invoices:view' },
       ]
     },
     {
       title: "OPERATIONS",
       items: [
-        { name: 'Inventory', icon: <Package size={20} />, path: '/inventory', roles: ['admin', 'inventory'] },
-        { name: 'Vendors', icon: <Handshake size={20} />, path: '/vendors', roles: ['admin', 'inventory'] },
-        { name: 'Purchase Orders', icon: <ClipboardCheck size={20} />, path: '/purchase-view', roles: ['admin', 'inventory'] },
-        { name: 'Receive Goods', icon: <Package size={20} />, path: '/grn', roles: ['admin', 'inventory'] },
+        { name: 'Inventory', icon: <Package size={20} />, path: '/inventory', permission: 'inventory:view' },
+        { name: 'Vendors', icon: <Handshake size={20} />, path: '/vendors', permission: 'vendors:view' },
+        { name: 'Purchase Orders', icon: <ClipboardCheck size={20} />, path: '/purchase-view', permission: 'purchase_orders:view' },
+        { name: 'Receive Goods', icon: <Package size={20} />, path: '/grn', permission: 'grn:view' },
       ]
     },
     {
       title: "FINANCE",
       items: [
-        { name: 'Tally Sync', icon: <RefreshCcw size={20} />, path: '/tally-dashboard', roles: ['admin'] },
-        { name: 'Vendor Bills', icon: <FileText size={20} />, path: '/vendor-bills', roles: ['admin', 'accounts'] },
-        { name: 'Vendor Ledger', icon: <BookOpen size={20} />, path: '/vendor-ledger', roles: ['admin', 'accounts'] },
-        { name: 'Aging Analysis', icon: <TrendingUp size={20} />, path: '/aging-dashboard', roles: ['admin', 'accounts'] },
+        { name: 'Tally Sync', icon: <RefreshCcw size={20} />, path: '/tally-dashboard', permission: 'tally:view' },
+        { name: 'Vendor Bills', icon: <FileText size={20} />, path: '/vendor-bills', permission: 'vendor_bills:view' },
+        { name: 'Vendor Ledger', icon: <BookOpen size={20} />, path: '/vendor-ledger', permission: 'vendor_ledger:view' },
+        { name: 'Aging Analysis', icon: <TrendingUp size={20} />, path: '/aging-dashboard', permission: 'aging:view' },
       ]
     },
     {
       title: "HUMAN RESOURCES",
       items: [
-        { name: 'Project Mgmt', icon: <Briefcase size={20} />, path: '/tasks', roles: ['admin', 'employee', 'hr'] },
-        { name: 'Employees', icon: <UserCircle size={20} />, path: '/employees', roles: ['admin', 'hr'] },
-        { name: 'Payroll', icon: <TrendingUp size={20} />, path: '/payroll', roles: ['admin', 'hr'] },
-        { name: 'Reports', icon: <PieChart size={20} />, path: '/reports', roles: ['admin', 'hr'] },
+        { name: 'Project Mgmt', icon: <Briefcase size={20} />, path: '/tasks', permission: 'tasks:view' },
+        { name: 'Employees', icon: <UserCircle size={20} />, path: '/employees', permission: 'employees:view' },
+        { name: 'Payroll', icon: <TrendingUp size={20} />, path: '/payroll', permission: 'payroll:view' },
+        { name: 'Reports', icon: <PieChart size={20} />, path: '/reports', permission: 'reports:view' },
       ]
     }
   ];
@@ -142,7 +144,10 @@ export default function Sidebar() {
         style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', paddingRight: '4px' }}
       >
         {menuSections.map((section, sidx) => {
-          const filteredItems = section.items.filter(i => i.roles.includes(userRole));
+          const filteredItems = section.items.filter(item => {
+            if (userRole === 'Admin') return true;
+            return userPermissions.includes(item.permission);
+          });
           if (filteredItems.length === 0) return null;
 
           return (

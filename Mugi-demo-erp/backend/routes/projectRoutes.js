@@ -39,11 +39,28 @@ router.get('/', async (req, res) => {
   try {
     const projects = await prisma.project.findMany({
       include: {
-        _count: { select: { tasks: true } }
+        tasks: {
+          select: { status: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(projects);
+
+    const result = projects.map(project => {
+      const totalTasks = project.tasks.length;
+      const completedTasks = project.tasks.filter(t => t.status === 'Done' || t.status === 'Completed').length;
+      const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      
+      const { tasks, ...projectData } = project;
+      return {
+        ...projectData,
+        totalTasks,
+        completedTasks,
+        completionPercentage
+      };
+    });
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch projects" });
   }
@@ -61,7 +78,22 @@ router.get('/:id', async (req, res) => {
         sprints: true
       }
     });
-    res.json(project);
+    
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    const totalTasks = project.tasks.length;
+    const completedTasks = project.tasks.filter(t => t.status === 'Done' || t.status === 'Completed').length;
+    const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    res.json({
+      ...project,
+      completionPercentage,
+      stats: {
+        total: totalTasks,
+        completed: completedTasks,
+        pending: totalTasks - completedTasks
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch project details" });
   }

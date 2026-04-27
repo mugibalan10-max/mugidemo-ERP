@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../lib/api";
 import Sidebar from "../components/Sidebar";
 
 /**
@@ -23,7 +23,7 @@ export default function Inventory() {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/products`);
+      const res = await api.get("/api/products");
       setProductsList(res.data);
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -36,7 +36,7 @@ export default function Inventory() {
     }
     setLoading(true);
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/products`, product);
+      await api.post("/api/products", product);
       alert("✅ Product added to inventory");
       setProduct({
         product_name: "",

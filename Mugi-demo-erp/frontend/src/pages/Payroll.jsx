@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import api from '../lib/api';
 
 /**
  * Payroll Page for Mugi Demo ERP
@@ -24,12 +25,11 @@ export default function Payroll() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/employees`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setEmployees(data);
+      const res = await api.get("/api/employees");
+      if (Array.isArray(res.data)) {
+        setEmployees(res.data);
       } else {
-        console.error("Employees data is not an array:", data);
+        console.error("Employees data is not an array:", res.data);
         setEmployees([]);
       }
     } catch (err) {
@@ -40,12 +40,11 @@ export default function Payroll() {
 
   const fetchPayroll = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/payroll`);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setPayrollHistory(data);
+      const res = await api.get("/api/payroll");
+      if (Array.isArray(res.data)) {
+        setPayrollHistory(res.data);
       } else {
-        console.error("Payroll data is not an array:", data);
+        console.error("Payroll data is not an array:", res.data);
         setPayrollHistory([]);
       }
     } catch (err) {
@@ -59,17 +58,12 @@ export default function Payroll() {
     if (!form.employeeId) return alert("Select an employee");
     
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/payroll/calculate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
-      if (res.ok && !data.error) {
-        setCalcResult(data);
+      const res = await api.post("/api/payroll/calculate", form);
+      if (res.status === 200 && !res.data.error) {
+        setCalcResult(res.data);
         fetchPayroll();
       } else {
-        alert("Calculation failed: " + (data.error || "Unknown error"));
+        alert("Calculation failed: " + (res.data.error || "Unknown error"));
       }
     } catch (err) {
       alert("Calculation failed due to network error");

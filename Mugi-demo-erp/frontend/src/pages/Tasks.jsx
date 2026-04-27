@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import api from '../lib/api';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
@@ -26,11 +27,11 @@ export default function Tasks() {
   const fetchData = async () => {
     try {
       const [taskRes, empRes] = await Promise.all([
-        fetch('http://localhost:5000/api/tasks'),
-        fetch('http://localhost:5000/api/employees')
+        api.get('/api/tasks'),
+        api.get('/api/employees')
       ]);
-      const taskData = await taskRes.json();
-      const empData = await empRes.json();
+      const taskData = taskRes.data;
+      const empData = empRes.data;
       
       if (Array.isArray(taskData)) {
         setTasks(taskData);
@@ -60,11 +61,7 @@ export default function Tasks() {
     if (!newTask.title || !newTask.assigned_to) return;
 
     try {
-      await fetch('http://localhost:5000/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask)
-      });
+      await api.post('/api/tasks', newTask);
       setNewTask({ title: '', assigned_to: '' });
       fetchData();
     } catch (err) {
@@ -74,11 +71,7 @@ export default function Tasks() {
 
   const updateStatus = async (taskId, newStatus) => {
     try {
-      await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
+      await api.put(`/api/tasks/${taskId}`, { status: newStatus });
       fetchData();
     } catch (err) {
       console.error("Update error:", err);

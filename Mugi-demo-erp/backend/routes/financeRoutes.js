@@ -148,4 +148,70 @@ router.get('/reports/aging', async (req, res) => {
   }
 });
 
+const tallyService = require('../services/tally.service');
+
+// --- RECONCILIATION ---
+router.get('/reconcile/customers', async (req, res) => {
+  try {
+    // 1. Get ERP Balances
+    const customers = await prisma.customer.findMany({
+      include: {
+        invoices: { select: { total: true } },
+        payments: { select: { amount: true } }
+      }
+    });
+
+    const erpBalances = customers.map(c => {
+      const totalInvoiced = c.invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
+      const totalPaid = c.payments.reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
+      return {
+        id: c.id,
+        name: c.name,
+        erpBalance: totalInvoiced - totalPaid
+      };
+    });
+
+    // 2. Get Tally Balances
+    let tallyBalances = [];
+    try {
+        tallyBalances = await tallyService.fetchLedgerBalances();
+    } catch (tallyErr) {
+        console.warn("Tally Offline during reconciliation");
+        return res.status(503).json({ 
+            error: "Tally Prime is offline. Reconciliation unavailable.",
+            erpData: erpBalances
+        });
+    }
+
+    // 3. Compare and Flag Mismatches
+    const report = erpBalances.map(erp => {
+      const tallyMatch = tallyBalances.find(t => t.name === erp.name);
+      const tallyBal = tallyMatch ? tallyMatch.tallyBalance : 0;
+      const difference = Math.abs(erp.erpBalance - tallyBal);
+      
+      return {
+        ...erp,
+        tallyBalance: tallyBal,
+        difference: difference,
+        status: difference < 1 ? 'MATCHED' : 'MISMATCH',
+        recommendation: difference < 1 ? 'None' : 'Sync pending invoices or payments'
+      };
+    });
+
+    res.json({
+        reconciledAt: new Date(),
+        summary: {
+            totalChecked: report.length,
+            mismatches: report.filter(r => r.status === 'MISMATCH').length,
+            matched: report.filter(r => r.status === 'MATCHED').length
+        },
+        data: report
+    });
+
+  } catch (err) {
+    console.error("Reconciliation Error:", err.message);
+    res.status(500).json({ error: "Failed to generate reconciliation report" });
+  }
+});
+
 module.exports = router;

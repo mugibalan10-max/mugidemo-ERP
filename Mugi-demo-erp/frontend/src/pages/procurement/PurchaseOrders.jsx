@@ -15,7 +15,7 @@ export default function PurchaseOrders() {
 
   const fetchPOs = async () => {
     try {
-      const res = await api.get('/procurement/po');
+      const res = await api.get('/api/procurement/po');
       setPos(res.data);
     } catch (err) {
       console.error(err);
@@ -32,6 +32,16 @@ export default function PurchaseOrders() {
       case 'Partially Received': return '#f59e0b';
       case 'Cancelled': return '#ef4444';
       default: return '#64748b';
+    }
+  };
+
+  const handleApprove = async (id) => {
+    try {
+      await api.patch(`/api/procurement/po/${id}/approve`);
+      alert("✅ Purchase Order Approved. Stock has been reserved!");
+      fetchPOs();
+    } catch (err) {
+      alert(err.response?.data?.error || "Approval failed");
     }
   };
 
@@ -113,7 +123,24 @@ export default function PurchaseOrders() {
                        </span>
                     </td>
                     <td style={{ padding: '24px 32px', textAlign: 'right' }}>
-                       <ChevronRight size={20} color="#cbd5e1" />
+                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                          {po.status === 'Draft' && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApprove(po.id);
+                              }}
+                              style={{ 
+                                padding: '8px 16px', borderRadius: '8px', border: 'none', 
+                                background: '#6366f1', color: 'white', fontWeight: '700', 
+                                fontSize: '0.75rem', cursor: 'pointer' 
+                              }}
+                            >
+                              Approve
+                            </button>
+                          )}
+                          <ChevronRight size={20} color="#cbd5e1" />
+                       </div>
                     </td>
                   </tr>
                 ))}
