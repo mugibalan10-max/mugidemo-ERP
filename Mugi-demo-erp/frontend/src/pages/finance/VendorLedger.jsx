@@ -36,6 +36,33 @@ export default function VendorLedger() {
     }
   };
 
+  const exportStatementCSV = () => {
+    if (!statement || !statement.transactions) return;
+
+    const headers = ["Date", "Description", "Reference", "Debit (Payment)", "Credit (Bill)", "Running Balance"];
+    
+    const rows = statement.transactions.map(t => [
+      new Date(t.transactionDate).toLocaleDateString(),
+      `"${t.narration || ''}"`,
+      `${t.referenceType} #${t.referenceId}`,
+      t.debit,
+      t.credit,
+      t.runningBalance
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const vendorName = vendors.find(v => v.id === parseInt(selectedVendor))?.vendorName || "Vendor";
+    link.setAttribute("download", `${vendorName.replace(/\s+/g, '_')}_Statement.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const theme = {
     primary: '#6366f1',
     bg: '#f8fafc',
@@ -90,7 +117,7 @@ export default function VendorLedger() {
               <div style={{ background: 'white', borderRadius: '28px', border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
                  <div style={{ padding: '24px 32px', borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Recent Transactions</h3>
-                    <button style={{ padding: '10px 20px', borderRadius: '10px', border: `1px solid ${theme.border}`, background: 'white', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <button onClick={exportStatementCSV} style={{ padding: '10px 20px', borderRadius: '10px', border: `1px solid ${theme.border}`, background: 'white', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                       <Download size={16} /> Export Statement
                     </button>
                  </div>

@@ -145,8 +145,7 @@ export default function Sidebar() {
       >
         {menuSections.map((section, sidx) => {
           const filteredItems = section.items.filter(item => {
-            if (userRole === 'Admin') return true;
-            return userPermissions.includes(item.permission);
+            return userRole.toLowerCase() === 'admin' || userPermissions.includes(item.permission);
           });
           if (filteredItems.length === 0) return null;
 

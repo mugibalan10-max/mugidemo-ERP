@@ -115,6 +115,8 @@ const taskRoutes = require("./routes/taskRoutes");
 const procurementRoutes = require("./routes/procurementRoutes");
 const financeRoutes = require("./routes/financeRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const apRoutes = require("./routes/apRoutes");
+const payrollRoutes = require("./routes/payrollRoutes");
 
 // --- Route Mounting ---
 app.use("/api/auth", authRoutes);
@@ -123,8 +125,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/tally", tallyRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api", inventoryRoutes);
-app.use("/api", hrRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/hr", hrRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api", invoiceRoutes);
@@ -132,6 +134,8 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/task-manager", taskRoutes);
 app.use("/api/procurement", procurementRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/ap", apRoutes);
+app.use("/api/payroll", payrollRoutes);
 
 // Start Background Workers
 require("./workers/tallySync.worker");
@@ -146,3 +150,11 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Zen Finance Backend running on http://localhost:${PORT}`);
 });
+
+
+
+
+
+
+// restart nodemon trigger
+// HRMS architecture trigger
