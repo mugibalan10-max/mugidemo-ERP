@@ -36,11 +36,13 @@ export default function CreatePO() {
     try {
       const [vRes, pRes] = await Promise.all([
         api.get('/api/procurement/vendors'),
-        api.get('/api/products')
+        api.get('/api/inventory/products')
       ]);
-      setVendors(vRes.data);
-      setProducts(pRes.data);
-    } catch (err) {}
+      setVendors(vRes.data || []);
+      setProducts(pRes.data || []);
+    } catch (err) {
+      console.error("Error fetching initial data:", err);
+    }
   };
 
   const addItem = () => {

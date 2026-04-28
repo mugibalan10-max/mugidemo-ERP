@@ -36,6 +36,39 @@ router.post('/vendors', async (req, res) => {
   }
 });
 
+// Bulk Create Vendors
+router.post('/vendors/bulk', async (req, res) => {
+  try {
+    const vendorsArray = req.body;
+    if (!Array.isArray(vendorsArray)) return res.status(400).json({ error: "Expected an array of vendors" });
+
+    const createdVendors = [];
+    
+    await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < vendorsArray.length; i++) {
+            const v = vendorsArray[i];
+            const vendorCode = `VND-BLK-${Date.now().toString().slice(-6)}-${i}`;
+            const vendor = await tx.vendor.create({
+                data: {
+                    vendorCode,
+                    vendorName: v.vendorName,
+                    gstNumber: v.gstNumber,
+                    phone: v.phone,
+                    email: v.email,
+                    address: v.address
+                }
+            });
+            createdVendors.push(vendor);
+        }
+    });
+
+    res.status(201).json({ message: `Successfully imported ${createdVendors.length} vendors`, vendors: createdVendors });
+  } catch (err) {
+    console.error("DEBUG: Bulk Vendor Error:", err);
+    res.status(500).json({ error: "Failed to bulk import vendors", details: err.message });
+  }
+});
+
 // List Vendors
 router.get('/vendors', async (req, res) => {
   try {
