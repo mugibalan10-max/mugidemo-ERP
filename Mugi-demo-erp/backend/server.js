@@ -139,6 +139,76 @@ app.use("/api/payroll", payrollRoutes);
 
 // Start Background Workers
 require("./workers/tallySync.worker");
+require("./workers/tallyImport.worker");
+
+const tallyService = require("./services/tally.service");
+app.post("/create-customer", async (req, res) => {
+  const { name } = req.body;
+  try {
+    const result = await tallyService.syncLedger(name, 'Sundry Debtors');
+    res.send({
+      message: "Customer synced to Tally Queue",
+      tallyResponse: result
+    });
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+const tallyClient = require("./services/tally.client");
+const xmlBuilder = require("./services/tally.xmlBuilder");
+
+app.post("/create-invoice", async (req, res) => {
+  const { customer, amount } = req.body;
+  try {
+    // Step 1: Ensure customer ledger exists in Tally
+    const customerXml = xmlBuilder.buildLedgerXML(customer, "Sundry Debtors");
+    await tallyClient.sendToTally(customerXml);
+
+    // Step 2: Ensure Sales ledger exists in Tally
+    const salesLedgerXml = xmlBuilder.buildLedgerXML("Sales", "Sales Accounts");
+    await tallyClient.sendToTally(salesLedgerXml);
+
+    // Step 3: Create Sales Invoice
+    const invoiceXml = `
+    <ENVELOPE>
+     <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
+     <BODY>
+      <IMPORTDATA>
+       <REQUESTDESC><REPORTNAME>Vouchers</REPORTNAME></REQUESTDESC>
+       <REQUESTDATA>
+        <TALLYMESSAGE>
+         <VOUCHER VCHTYPE="Sales" ACTION="Create">
+          <DATE>${new Date().toISOString().slice(0,10).replace(/-/g, '')}</DATE>
+          <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+          <PARTYLEDGERNAME>${customer}</PARTYLEDGERNAME>
+          <ALLLEDGERENTRIES.LIST>
+            <LEDGERNAME>${customer}</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+            <AMOUNT>-${amount}</AMOUNT>
+          </ALLLEDGERENTRIES.LIST>
+          <ALLLEDGERENTRIES.LIST>
+            <LEDGERNAME>Sales</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AMOUNT>${amount}</AMOUNT>
+          </ALLLEDGERENTRIES.LIST>
+         </VOUCHER>
+        </TALLYMESSAGE>
+       </REQUESTDATA>
+      </IMPORTDATA>
+     </BODY>
+    </ENVELOPE>`;
+
+    const result = await tallyClient.sendToTally(invoiceXml);
+    res.send({
+      message: "Sales Invoice successfully synced to Tally",
+      tallyResponse: result
+    });
+  } catch (err) {
+    console.error("Invoice Sync Error:", err.message);
+    res.status(500).send({ error: "Sync Failed", details: err.message });
+  }
+});
 
 // --- 404 Fallback ---
 app.use((req, res) => {

@@ -15,6 +15,9 @@ router.post("/sync/invoice", tallyController.syncInvoiceToTally);
 router.post("/sync/manual", tallyController.manualSyncInvoice);
 router.get("/sync/status/:entityId", tallyController.getSyncStatus);
 router.get("/sync/queue", tallyController.getSyncQueue);
+router.post("/sync/tally-customers", tallyController.syncTallyCustomers);
+router.post("/sync/retry-failed", tallyController.retryFailedSyncs);
+router.post("/sync/retry-all", tallyController.bulkRetry);
 router.post("/sync/retry/:id", tallyController.manualRetry);
 
 module.exports = router;

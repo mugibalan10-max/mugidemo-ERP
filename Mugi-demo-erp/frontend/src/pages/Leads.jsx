@@ -271,22 +271,75 @@ export default function Leads() {
         </div>
       )}
 
-      {showActivityModal && (
+       {showActivityModal && (
         <div style={modalOverlay}>
-           <div style={modalContent}>
-              <h2 style={{ marginBottom: '8px' }}>Log Activity</h2>
-              <p style={{ color: theme.textMuted, fontSize: '0.85rem', marginBottom: '24px' }}>For Lead: {selectedLead?.name}</p>
-              <div style={{ display: 'grid', gap: '20px' }}>
-                <div><label style={modalLabel}>Activity Type</label>
-                  <select style={modalInput} value={newActivity.type} onChange={e => setNewActivity({...newActivity, type: e.target.value})}>
-                    <option>Call</option><option>Email</option><option>Meeting</option><option>Note</option>
-                  </select>
+           <div style={{ ...modalContent, maxWidth: '600px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                <div>
+                  <h2 style={{ margin: 0 }}>Activity & Interactions</h2>
+                  <p style={{ color: theme.textMuted, fontSize: '0.85rem', margin: '4px 0 0' }}>History for {selectedLead?.name}</p>
                 </div>
-                <div><label style={modalLabel}>Description</label><textarea style={{ ...modalInput, height: '100px', resize: 'none' }} placeholder="Discussed project pricing..." value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} /></div>
-                
-                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                   <button onClick={() => setShowActivityModal(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: `1px solid ${theme.border}`, background: 'white', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
-                   <button onClick={logActivity} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: theme.secondary, color: 'white', fontWeight: '700', cursor: 'pointer' }}>Log Activity (+Score)</button>
+                <button onClick={() => setShowActivityModal(false)} style={{ background: 'transparent', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+              </div>
+
+              {/* Activity History */}
+              <div style={{ marginBottom: '32px', maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+                <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: theme.textMuted, marginBottom: '16px', letterSpacing: '0.1em' }}>Interaction History</h4>
+                {selectedLead?.activities && selectedLead.activities.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {[...selectedLead.activities].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).map((act, idx) => (
+                      <div key={idx} style={{ padding: '16px', borderRadius: '12px', background: '#f8fafc', border: `1px solid ${theme.border}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '800', color: theme.primary, background: `${theme.primary}10`, padding: '2px 8px', borderRadius: '4px' }}>{act.type.toUpperCase()}</span>
+                          <span style={{ fontSize: '0.7rem', color: theme.textMuted }}>{new Date(act.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: theme.textMain, lineHeight: 1.5 }}>{act.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '24px', background: '#f8fafc', borderRadius: '12px', border: `1px dashed ${theme.border}`, color: theme.textMuted, fontSize: '0.85rem' }}>No activities logged yet.</div>
+                )}
+              </div>
+
+              <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '24px' }}>
+                <h4 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: theme.textMuted, marginBottom: '16px', letterSpacing: '0.1em' }}>Log New Activity</h4>
+                <div style={{ display: 'grid', gap: '20px' }}>
+                  <div>
+                    <label style={modalLabel}>Activity Type</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {['Call', 'Email', 'Meeting', 'Note'].map(type => (
+                        <button 
+                          key={type}
+                          onClick={() => setNewActivity({...newActivity, type})}
+                          style={{
+                            flex: 1, padding: '10px', borderRadius: '8px', border: `1px solid ${newActivity.type === type ? theme.primary : theme.border}`,
+                            background: newActivity.type === type ? `${theme.primary}10` : 'white',
+                            color: newActivity.type === type ? theme.primary : theme.textMuted,
+                            fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s'
+                          }}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><label style={modalLabel}>Description / Notes</label><textarea style={{ ...modalInput, height: '80px', resize: 'none' }} placeholder="Discussed requirements, follow up next week..." value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} /></div>
+                  
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => setShowActivityModal(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: `1px solid ${theme.border}`, background: 'white', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+                    <button 
+                      onClick={logActivity} 
+                      disabled={!newActivity.description}
+                      style={{ 
+                        flex: 2, padding: '14px', borderRadius: '12px', border: 'none', 
+                        background: newActivity.description ? theme.primary : '#cbd5e1', 
+                        color: 'white', fontWeight: '700', cursor: newActivity.description ? 'pointer' : 'not-allowed' 
+                      }}
+                    >
+                      Log Interaction (+Score)
+                    </button>
+                  </div>
                 </div>
               </div>
            </div>

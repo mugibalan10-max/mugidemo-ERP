@@ -122,7 +122,7 @@ model Opportunity {
 
 model Customer {
   id              Int      @id @default(autoincrement())
-  name            String   @db.VarChar(150)
+  name            String   @unique @db.VarChar(150)
   email           String?  @unique @db.VarChar(150)
   phone           String?  @unique @db.VarChar(50)
   companyName     String?  @map("company_name") @db.VarChar(150)
@@ -135,6 +135,11 @@ model Customer {
   status          String   @default("Active") @db.VarChar(30)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  // Tally Sync Fields
+  tallySyncStatus   String?   @default("PENDING") @map("tally_sync_status") // SUCCESS, FAILED, PENDING
+  tallyLastSyncedAt DateTime? @map("tally_last_synced_at")
+  tallySyncError    String?   @map("tally_sync_error") @db.Text
 
   invoices        Invoice[]
   payments        Payment[]
@@ -305,6 +310,8 @@ model SyncQueue {
   maxRetries    Int      @default(5) @map("max_retries")
   nextRetryAt   DateTime? @map("next_retry_at")
   lastError     String?  @map("last_error") @db.Text
+  requestXml    String?  @map("request_xml") @db.Text
+  responseXml   String?  @map("response_xml") @db.Text
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 

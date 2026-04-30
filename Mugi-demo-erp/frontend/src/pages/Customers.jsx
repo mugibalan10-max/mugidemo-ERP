@@ -2,22 +2,21 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import api from '../lib/api';
 import { 
-  Users, Plus, Search, Mail, Phone, MoreHorizontal, Download, 
-  CreditCard, DollarSign, TrendingUp, AlertTriangle, Building, MapPin, ShieldAlert,
+  Users, Plus, Search, Mail, Phone,
+  DollarSign, TrendingUp, AlertTriangle, Building, ShieldAlert,
   ArrowRight
 } from 'lucide-react';
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [dashboard, setDashboard] = useState({ totalCustomers: 0, totalRevenue: 0, totalOverdue: 0, openTickets: 0, topCustomers: [] });
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [showModal, setShowModal] = useState(false);
   const [newClient, setNewClient] = useState({ 
     name: '', email: '', phone: '', companyName: '', gstNumber: '', 
     billingAddress: '', shippingAddress: '', creditLimit: '', 
-    paymentTerms: 'Net 30', customerType: 'Retail' 
+    paymentTerms: 'Net 30', customerType: 'Retail', state: 'Tamil Nadu'
   });
 
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -30,7 +29,6 @@ export default function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      setLoading(true);
       const [custRes, dashRes] = await Promise.all([
         api.get('/api/customers'),
         api.get('/api/customers/reports/dashboard')
@@ -39,8 +37,6 @@ export default function Customers() {
       setDashboard(dashRes.data);
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -49,12 +45,40 @@ export default function Customers() {
     if (!newClient.name) return alert("Client name is required");
     try {
       await api.post('/api/customers', newClient);
+      
       setShowModal(false);
-      setNewClient({ name: '', email: '', phone: '', companyName: '', gstNumber: '', billingAddress: '', shippingAddress: '', creditLimit: '', paymentTerms: 'Net 30', customerType: 'Retail' });
+      setNewClient({ 
+        name: '', email: '', phone: '', companyName: '', gstNumber: '', 
+        billingAddress: '', shippingAddress: '', creditLimit: '', 
+        paymentTerms: 'Net 30', customerType: 'Retail', state: 'Tamil Nadu' 
+      });
       fetchCustomers();
-      alert("Enterprise Client registered successfully! Ledger Auto-Created.");
+
+      // Show success feedback matching user request logic
+      alert("🟢 Customer Synced to Tally Queue successfully!");
     } catch (err) {
-      alert("Failed to register client");
+      console.error("Sync Error:", err);
+      alert("🔴 Registration Failed: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleTallySync = async () => {
+    try {
+      const res = await api.post('/api/tally/sync/tally-customers');
+      alert(`🟢 ${res.data.message}`);
+      fetchCustomers();
+    } catch (err) {
+      alert(`🔴 Sync Failed: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleRetryFailed = async () => {
+    try {
+      const res = await api.post('/api/tally/sync/retry-failed');
+      alert(`🟢 ${res.data.message}`);
+      fetchCustomers();
+    } catch (err) {
+      alert(`🔴 Retry Failed: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -96,13 +120,31 @@ export default function Customers() {
           
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
             <div>
+              <button 
+                onClick={() => window.history.back()} 
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', color: theme.textMuted, background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: '700', marginBottom: '12px', padding: 0 }}
+              >
+                <Plus size={16} style={{ transform: 'rotate(45deg)' }} /> Return Back
+              </button>
               <nav style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: theme.textMuted, marginBottom: '8px', fontWeight: '700' }}>
-                 <span>Enterprise ERP</span><span>/</span><span style={{ color: theme.primary }}>Customer Master</span>
+                 <span onClick={() => window.location.href='/dashboard'} style={{ cursor: 'pointer' }}>Enterprise ERP</span><span>/</span><span style={{ color: theme.primary }}>Customer Master</span>
               </nav>
               <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: theme.textMain, margin: 0 }}>Customer Management</h1>
               <p style={{ color: theme.textMuted, marginTop: '4px' }}>Global registry linked with Sales, Ledgers, and Credit Control.</p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
+               <button 
+                 onClick={handleTallySync} 
+                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '14px', background: 'white', color: theme.textMain, border: `1px solid ${theme.border}`, fontWeight: '700', cursor: 'pointer' }}
+               >
+                 <TrendingUp size={18} /> Sync from Tally
+               </button>
+               <button 
+                 onClick={handleRetryFailed} 
+                 style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '14px', background: 'white', color: theme.danger, border: `1px solid ${theme.danger}40`, fontWeight: '700', cursor: 'pointer' }}
+               >
+                 <ShieldAlert size={18} /> Retry Failed
+               </button>
                <button onClick={() => setShowModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '14px', background: theme.primary, color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer', boxShadow: `0 10px 15px -3px ${theme.primary}40` }}>
                  <Plus size={18} /> Register Customer
                </button>
@@ -168,6 +210,7 @@ export default function Customers() {
                   <th style={{ padding: '20px 24px', fontWeight: '800' }}>Contact Info</th>
                   <th style={{ padding: '20px 24px', fontWeight: '800' }}>Credit & Terms</th>
                   <th style={{ padding: '20px 24px', fontWeight: '800' }}>Ledger Status</th>
+                  <th style={{ padding: '20px 24px', fontWeight: '800' }}>Tally Sync</th>
                   <th style={{ padding: '20px 24px', fontWeight: '800', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -207,6 +250,18 @@ export default function Customers() {
                          </div>
                        ) : <span style={{ fontSize: '0.8rem', color: theme.textMuted }}>No Ledger</span>}
                     </td>
+                    <td style={{ padding: '20px 24px' }}>
+                       {c.tallySyncStatus === 'SUCCESS' ? (
+                         <Badge text="Synced" color={theme.success} bg="#10b98115" />
+                       ) : c.tallySyncStatus === 'FAILED' ? (
+                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                           <Badge text="Failed" color={theme.danger} bg="#ef444415" />
+                           <span style={{ fontSize: '0.7rem', color: theme.danger, maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.tallySyncError}</span>
+                         </div>
+                       ) : (
+                         <Badge text="Pending" color={theme.warning} bg="#f59e0b15" />
+                       )}
+                    </td>
                     <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                        <button 
                          onClick={() => { setSelectedCustomer(c); setShowOrderModal(true); }}
@@ -227,7 +282,10 @@ export default function Customers() {
       {showModal && (
         <div style={modalOverlay}>
           <div style={{ ...modalContent, maxWidth: '800px' }}>
-             <h2 style={{ marginBottom: '8px', fontSize: '1.75rem', fontWeight: '800', color: theme.textMain }}>Register Enterprise Customer</h2>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: '800', color: theme.textMain, margin: 0 }}>Register Enterprise Customer</h2>
+                <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+             </div>
              <p style={{ color: theme.textMuted, marginBottom: '32px', fontSize: '0.9rem' }}>This instantly links to Sales, Inventory, and auto-generates a Finance Ledger.</p>
              
              <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -236,10 +294,11 @@ export default function Customers() {
                    <div><label style={modalLabel}>Company Name</label><input style={modalInput} value={newClient.companyName} onChange={e => setNewClient({...newClient, companyName: e.target.value})} /></div>
                    <div><label style={modalLabel}>Email Address</label><input type="email" style={modalInput} value={newClient.email} onChange={e => setNewClient({...newClient, email: e.target.value})} /></div>
                    <div><label style={modalLabel}>Phone Number</label><input style={modalInput} value={newClient.phone} onChange={e => setNewClient({...newClient, phone: e.target.value})} /></div>
-                   <div><label style={modalLabel}>GSTIN / Tax ID</label><input style={modalInput} value={newClient.gstNumber} onChange={e => setNewClient({...newClient, gstNumber: e.target.value})} /></div>
+                   <div><label style={modalLabel}>GSTIN / Tax ID</label><input style={modalInput} placeholder="e.g. 33AAAAA0000A1Z5" value={newClient.gstNumber} onChange={e => setNewClient({...newClient, gstNumber: e.target.value})} /></div>
+                   <div><label style={modalLabel}>State / Region</label><input style={modalInput} placeholder="e.g. Tamil Nadu" value={newClient.state} onChange={e => setNewClient({...newClient, state: e.target.value})} /></div>
                    <div><label style={modalLabel}>Customer Type</label>
                       <select style={modalInput} value={newClient.customerType} onChange={e => setNewClient({...newClient, customerType: e.target.value})}>
-                        <option>Retail</option><option>Wholesale</option><option>Distributor</option>
+                        <option>Retail</option><option>Wholesale</option><option>Distributor</option><option>Enterprise</option>
                       </select>
                    </div>
                 </div>

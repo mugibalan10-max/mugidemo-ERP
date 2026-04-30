@@ -8,7 +8,7 @@ import {
 
 /**
  * Enterprise Task & Project Management Dashboard
- * Zen Finance ERP Standard
+ * Zen Enterprise ERP Standard
  */
 export default function TaskManager() {
   const [projects, setProjects] = useState([]);

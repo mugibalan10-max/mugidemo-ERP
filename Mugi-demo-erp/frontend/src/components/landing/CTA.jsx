@@ -13,15 +13,15 @@ export function CTA() {
       />
       <div className="mx-auto max-w-4xl px-4 text-center reveal">
         <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1.5 text-xs text-muted-foreground shadow-soft">
-          Ready when you are
+          Ready to scale?
         </div>
         <h2 className="mt-5 font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05]">
-          Start managing finance{" "}
-          <span className="text-gradient-brand">smarter today</span>.
+          Transform your enterprise{" "}
+          <span className="text-gradient-brand">operations today</span>.
         </h2>
         <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-          Join 12,400+ teams running their entire finance, loan, and ERP workflows on Zen.
-          No setup fee. Migrate in minutes.
+          Join thousands of global enterprises running their core business processes on our unified platform.
+          Experience the future of intelligent ERP.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link
@@ -29,14 +29,14 @@ export function CTA() {
             className="btn-glow inline-flex items-center gap-2 rounded-xl bg-gradient-brand text-primary-foreground text-base font-semibold px-6 py-3.5 shadow-soft"
             style={{ animation: "var(--animate-pulse-glow)" }}
           >
-            Login to ERP
+            Request Demo
             <ArrowRight className="size-4" />
           </Link>
           <a
             href="#features"
             className="inline-flex items-center gap-2 rounded-xl glass-strong text-foreground text-base font-semibold px-6 py-3.5 hover:-translate-y-0.5 transition-transform"
           >
-            Talk to sales
+            Contact Sales
           </a>
         </div>
       </div>

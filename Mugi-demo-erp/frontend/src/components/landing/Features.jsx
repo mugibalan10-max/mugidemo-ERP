@@ -4,45 +4,45 @@ import { useReveal } from "../../hooks/use-reveal";
 
 const features = [
   {
+    icon: Wallet,
+    title: "Accounts & Billing",
+    desc: "A powerful double-entry accounting engine with global tax compliance and multi-entity support.",
+    bullets: ["General Ledger", "Accounts Payable/Receivable", "Asset Management"],
+    accent: "from-indigo-500 to-blue-400",
+  },
+  {
+    icon: Users,
+    title: "Human Resources (HRMS)",
+    desc: "Automate workforce management with self-service portals, attendance tracking, and payroll computation.",
+    bullets: ["Payroll Processing", "Attendance Tracking", "Employee Self-Service"],
+    accent: "from-rose-500 to-pink-400",
+  },
+  {
+    icon: Receipt,
+    title: "Inventory & Procurement",
+    desc: "Full visibility over your supply chain — from purchase requests and vendor management to stock valuation.",
+    bullets: ["Automated POs", "Batch Tracking", "Vendor Management"],
+    accent: "from-amber-500 to-orange-400",
+  },
+  {
     icon: Landmark,
-    title: "Loan Lifecycle Management",
-    desc: "End-to-end loan automation — from lead capture and credit scoring to disbursement and EMI collection.",
-    bullets: ["Credit Risk Analysis", "EMI Auto-scheduling", "Collection Tracking"],
+    title: "Sales & CRM",
+    desc: "Manage the entire customer journey, from lead generation and quoting to order fulfillment.",
+    bullets: ["Lead Management", "Sales Forecasting", "Quotation Automation"],
     accent: "from-blue-600 to-indigo-500",
   },
   {
     icon: RefreshCcw,
-    title: "Live TallyPrime Sync",
-    desc: "Industry-leading data pipeline that pushes your sales, payments, and ledgers to Tally in real-time.",
-    bullets: ["Auto-Voucher Creation", "Ledger Reconciliation", "Error Logs"],
+    title: "Manufacturing",
+    desc: "Optimize production planning, bill of materials (BOM), and shop floor control for maximum efficiency.",
+    bullets: ["BOM Management", "Production Planning", "Quality Control"],
     accent: "from-emerald-500 to-teal-400",
   },
   {
-    icon: Wallet,
-    title: "Finance & Accounting",
-    desc: "A powerful double-entry accounting engine with GST-ready reporting and multi-entity support.",
-    bullets: ["GST Reports", "Cash Flow Sync", "Multi-Currency"],
-    accent: "from-indigo-500 to-blue-400",
-  },
-  {
-    icon: Receipt,
-    title: "Procurement & Inventory",
-    desc: "Full visibility over your supply chain — from purchase requests and POs to GRNs and stock valuation.",
-    bullets: ["Auto-Reorder Alerts", "Batch Tracking", "Vendor Management"],
-    accent: "from-amber-500 to-orange-400",
-  },
-  {
-    icon: Users,
-    title: "HR & Payroll Engine",
-    desc: "Automate your workforce management with biometric attendance sync and automated salary computation.",
-    bullets: ["Salary Automation", "Attendance Tracking", "Compliance Forms"],
-    accent: "from-rose-500 to-pink-400",
-  },
-  {
     icon: BarChart3,
-    title: "Advanced Analytics",
-    desc: "Futuristic business intelligence dashboards that surface trends and risk metrics across every module.",
-    bullets: ["Custom Dashboards", "Audit Trails", "Export to PDF/Excel"],
+    title: "Project Management",
+    desc: "Track project lifecycles, allocate resources, and monitor budgets with real-time analytics.",
+    bullets: ["Resource Allocation", "Timesheet Tracking", "Budget Monitoring"],
     accent: "from-indigo-600 to-violet-400",
   },
 ];
@@ -54,13 +54,13 @@ export function Features() {
       <div className="mx-auto max-w-6xl px-4">
         <div className="max-w-2xl reveal">
           <div className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">
-            Enterprise Suite
+            Enterprise Modules
           </div>
           <h2 className="mt-3 font-display text-3xl sm:text-4xl font-semibold tracking-tight">
-            A complete ecosystem for <span className="text-gradient-brand">modern finance</span>.
+            A complete ecosystem for <span className="text-gradient-brand">modern enterprises</span>.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Built to replace fragmented spreadsheets with a single, intelligent workstation that 
+            Built to replace fragmented spreadsheets and disparate software with a single, intelligent ERP platform that 
             manages every aspect of your business operations.
           </p>
         </div>

@@ -60,14 +60,14 @@ export default function Login() {
             <div style={{ width: '48px', height: '48px', background: '#6366f1', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <Zap color="white" fill="white" size={24} />
             </div>
-            <h2 style={{ color: 'white', margin: 0, fontSize: '1.75rem', fontWeight: '800' }}>Zen Finance</h2>
+            <h2 style={{ color: 'white', margin: 0, fontSize: '1.75rem', fontWeight: '800' }}>Zen Enterprise</h2>
           </div>
           
           <h1 style={{ color: 'white', fontSize: '3.5rem', fontWeight: '800', lineHeight: 1.1, maxWidth: '500px', marginBottom: '24px' }}>
             Enterprise <span style={{ color: '#818cf8' }}>Resource</span> Planning Redefined.
           </h1>
           <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '400px', lineHeight: 1.6 }}>
-            The all-in-one suite for modern businesses to automate procurement, finance, and human operations with pixel-perfect precision.
+            The all-in-one suite for modern businesses to automate procurement, accounting, and human operations with pixel-perfect precision.
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function Login() {
 
           <div style={{ marginTop: '60px', textAlign: 'center' }}>
              <p style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600' }}>
-               ZEN FINANCE ERP v5.0.4 • © 2026 MUGI ERP SYSTEMS
+               ZEN ENTERPRISE ERP v5.0.4 • © 2026 MUGI ERP SYSTEMS
              </p>
           </div>
         </div>

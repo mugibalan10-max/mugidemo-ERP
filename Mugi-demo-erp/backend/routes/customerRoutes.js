@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
 const { protect, checkPermission } = require("../middleware/auth.middleware");
+const tallyService = require('../services/tally.service');
 
 // Helper: Real-time automation mock
 function triggerCustomerEvent(event, payload) {
@@ -35,10 +36,26 @@ router.post("/", async (req, res) => {
                 data: { customerId: customer.id }
             });
 
+            // 4. TALLY SYNC: Queue Ledger Creation with full details
+            await tx.syncQueue.create({
+                data: {
+                    entityType: "ledger",
+                    entityId: name,
+                    payload: { 
+                        name, 
+                        address: billingAddress, 
+                        state: "Tamil Nadu", // Default or extract from address if possible
+                        gst: gstNumber,
+                        group: 'Sundry Debtors' 
+                    },
+                    status: "QUEUED"
+                }
+            });
+
             return { customer, ledger };
         });
 
-        res.status(201).json({ message: "Customer created successfully", ...result });
+        res.status(201).json({ message: "Customer created successfully & Queued for Tally Sync", ...result });
     } catch (err) {
         console.error("Create Customer Error:", err);
         res.status(500).json({ error: "Failed to create customer", details: err.message || err.toString() });
