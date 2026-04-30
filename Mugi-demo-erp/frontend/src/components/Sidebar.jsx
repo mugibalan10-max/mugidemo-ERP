@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 import { 
   LayoutDashboard, 
   Users, 
@@ -28,6 +29,22 @@ export default function Sidebar() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const userRole = user.role || 'employee';
   const userPermissions = user.permissions || [];
+  const [tallyOnline, setTallyOnline] = useState(false);
+
+  // Poll Tally Status
+  useEffect(() => {
+    const checkTally = async () => {
+      try {
+        const res = await api.get('/api/tally/status');
+        setTallyOnline(res.data?.connected || false);
+      } catch (err) {
+        setTallyOnline(false);
+      }
+    };
+    checkTally();
+    const interval = setInterval(checkTally, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Restore scroll position on mount
   useEffect(() => {
@@ -69,7 +86,7 @@ export default function Sidebar() {
       ]
     },
     {
-      title: "FINANCE",
+      title: "ACCOUNTS",
       items: [
         { name: 'Tally Sync', icon: <RefreshCcw size={20} />, path: '/tally-dashboard', permission: 'tally:view' },
         { name: 'Vendor Bills', icon: <FileText size={20} />, path: '/vendor-bills', permission: 'vendor_bills:view' },
@@ -117,21 +134,35 @@ export default function Sidebar() {
         marginBottom: '40px',
         overflow: 'hidden'
       }}>
-        <div style={{
-          minWidth: '40px',
-          height: '40px',
-          background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 8px 16px rgba(99, 102, 241, 0.4)'
-        }}>
-          <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'white' }}>Z</span>
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            minWidth: '40px',
+            height: '40px',
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 16px rgba(99, 102, 241, 0.4)'
+          }}>
+            <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'white' }}>Z</span>
+          </div>
+          <div style={{
+            position: 'absolute',
+            top: '-2px',
+            right: '-2px',
+            width: '12px',
+            height: '12px',
+            borderRadius: '50%',
+            backgroundColor: tallyOnline ? '#10b981' : '#ef4444',
+            boxShadow: `0 0 10px ${tallyOnline ? '#10b981' : '#ef4444'}`,
+            border: '2px solid #0f172a',
+            transition: 'all 0.3s'
+          }} title={tallyOnline ? "Tally is Online" : "Tally is Offline"} />
         </div>
         {!isCollapsed && (
           <div style={{ transition: 'opacity 0.3s' }}>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Zen Finance</h1>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0, background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Zen Enterprise</h1>
             <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Enterprise Suite</p>
           </div>
         )}

@@ -6,20 +6,20 @@ import BorderGlow from "../ui/BorderGlow";
 const testimonials = [
   {
     author: "Sarah J. Miller",
-    role: "CFO, Globe-X Finance",
-    text: "Zen Finance transformed our loan approval lifecycle from weeks to hours. The Tally integration is a masterpiece of engineering.",
+    role: "COO, Globe-X Enterprises",
+    text: "Zen ERP transformed our operational lifecycle from weeks to hours. The comprehensive module integration is a masterpiece of engineering.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah"
   },
   {
     author: "David Chen",
     role: "Director, Northwind Systems",
-    text: "The most intuitive ERP we've ever deployed. The dashboard surfaces critical risk metrics before they become problems.",
+    text: "The most intuitive ERP we've ever deployed. The dashboard surfaces critical performance metrics before they become problems.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David"
   },
   {
     author: "Elena Rodriguez",
     role: "Operations Head, Initech",
-    text: "Scaling our fintech business was impossible without Zen. The automated billing and collection flows are game-changers.",
+    text: "Scaling our global enterprise was impossible without Zen. The automated workflows and data synchronization are game-changers.",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Elena"
   }
 ];
@@ -34,7 +34,7 @@ export function Testimonials() {
             Success Stories
           </div>
           <h2 className="mt-3 font-display text-3xl sm:text-4xl font-semibold tracking-tight">
-            Trusted by the world's <span className="text-gradient-brand">best finance teams</span>.
+            Trusted by the world's <span className="text-gradient-brand">best enterprise teams</span>.
           </h2>
         </div>
 

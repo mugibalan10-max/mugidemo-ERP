@@ -239,18 +239,35 @@ router.post('/:id/convert', async (req, res) => {
     const lead = await prisma.lead.findUnique({ where: { id: leadId } });
     if (!lead) return res.status(404).json({ error: "Lead not found" });
 
-    // 1. Create Customer Account
-    const customer = await prisma.customer.create({
-      data: {
-        name: lead.company || lead.name,
-        email: lead.email,
-        phone: lead.phone
+    // 1. Check or Create Customer Account
+    let customer = await prisma.customer.findFirst({
+      where: {
+        OR: [
+          { email: lead.email ? { equals: lead.email, mode: 'insensitive' } : undefined },
+          { phone: lead.phone ? { equals: lead.phone } : undefined }
+        ].filter(Boolean)
       }
     });
 
-    // 2. Auto create Opportunity (Deal)
-    const opportunity = await prisma.opportunity.create({
-      data: {
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          name: lead.company || lead.name,
+          email: lead.email,
+          phone: lead.phone
+        }
+      });
+    }
+
+    // 2. Auto create or update Opportunity (Deal)
+    const opportunity = await prisma.opportunity.upsert({
+      where: { leadId },
+      update: {
+        customerId: customer.id,
+        value: parseFloat(expectedValue || 0),
+        expectedCloseDate: closeDate ? new Date(closeDate) : null
+      },
+      create: {
         leadId,
         customerId: customer.id,
         value: parseFloat(expectedValue || 0),
@@ -259,10 +276,10 @@ router.post('/:id/convert', async (req, res) => {
       }
     });
 
-    // 3. Mark Lead as Won/Converted
+    // 3. Mark Lead as Converted (Setting status to 'Won' or 'Qualified')
     await prisma.lead.update({
       where: { id: leadId },
-      data: { status: 'Qualified' }
+      data: { status: 'Won' }
     });
 
     fireLeadEvent('LEAD_CONVERTED', { leadId, opportunityId: opportunity.id, customerId: customer.id });

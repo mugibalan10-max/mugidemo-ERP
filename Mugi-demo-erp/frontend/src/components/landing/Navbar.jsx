@@ -2,11 +2,9 @@ import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
 const links = [
-  { label: "Features", href: "#features" },
-  { label: "Loans", href: "#loans" },
+  { label: "Modules", href: "#features" },
   { label: "Dashboard", href: "#dashboard" },
-  { label: "Security", href: "#security" },
-  { label: "How it works", href: "#how" },
+  { label: "Benefits", href: "#benefits" },
 ];
 
 export function Navbar() {
@@ -18,7 +16,7 @@ export function Navbar() {
             <Sparkles className="size-4 text-primary-foreground" />
           </div>
           <span className="font-display text-base font-semibold tracking-tight">
-            Zen<span className="text-gradient-brand"> Finance</span>
+            Zen<span className="text-gradient-brand"> Enterprise</span>
           </span>
           <span className="hidden sm:inline ml-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             ERP

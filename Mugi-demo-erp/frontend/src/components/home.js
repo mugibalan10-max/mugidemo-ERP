@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../lib/api";
 
 /**
- * Zen Finance — Business Intelligence Dashboard
+ * Zen Enterprise — Business Intelligence Dashboard
  * Fetches data from the standardized /api/tally/dashboard endpoint.
  */
 function Home() {
@@ -52,16 +52,24 @@ function Home() {
         <div style={{ padding: "40px", fontFamily: 'Inter, sans-serif', color: theme.textMain, background: '#f8fafc', minHeight: '100vh' }}>
             <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '800' }}>Zen Finance BI</h1>
+                    <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: '800' }}>Zen Enterprise BI</h1>
                     <p style={{ margin: '4px 0 0', color: theme.textMuted }}>Standardized Tally Dashboard</p>
                 </div>
                 <div style={{ 
                     padding: '8px 16px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700',
                     background: status.connected ? '#10b98115' : '#ef444415',
                     color: status.connected ? '#10b981' : '#ef4444',
-                    border: `1px solid ${status.connected ? '#10b981' : '#ef4444'}`
+                    border: `1px solid ${status.connected ? '#10b981' : '#ef4444'}`,
+                    display: 'flex', alignItems: 'center', gap: '8px'
                 }}>
-                    {status.checking ? "Syncing..." : (status.connected ? "🟢 Tally Online" : "🔴 Tally Offline")}
+                    {!status.checking && (
+                        <div style={{
+                            width: '10px', height: '10px', borderRadius: '50%',
+                            backgroundColor: status.connected ? '#10b981' : '#ef4444',
+                            boxShadow: `0 0 8px ${status.connected ? '#10b981' : '#ef4444'}`
+                        }} />
+                    )}
+                    {status.checking ? "Syncing..." : (status.connected ? "Tally Online" : "Tally Offline")}
                 </div>
             </div>
 

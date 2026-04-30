@@ -19,7 +19,7 @@ const tiers = [
   {
     name: "Enterprise",
     price: "$899",
-    desc: "The complete command center for scaling finance teams.",
+    desc: "The complete command center for scaling enterprise teams.",
     features: [
       "Unlimited Loans",
       "AI Risk Assessment",

@@ -9,11 +9,11 @@ export function Footer() {
             <Sparkles className="size-3.5 text-primary-foreground" />
           </div>
           <span className="font-display font-semibold">
-            Zen<span className="text-gradient-brand"> Finance</span> ERP
+            Zen<span className="text-gradient-brand"> Enterprise</span> ERP
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Zen Finance Systems. All rights reserved.
+          © {new Date().getFullYear()} Zen Enterprise Systems. All rights reserved.
         </div>
         <div className="flex items-center gap-5 text-xs text-muted-foreground">
           <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>

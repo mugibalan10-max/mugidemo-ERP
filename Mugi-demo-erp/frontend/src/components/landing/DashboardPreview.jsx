@@ -80,7 +80,7 @@ export function DashboardPreview() {
         <div className="relative flex items-center justify-between">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-              Finance Overview
+              Enterprise Overview
             </div>
             <div className="mt-1 text-sm text-slate-500">April · 2026</div>
           </div>

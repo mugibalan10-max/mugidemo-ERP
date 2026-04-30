@@ -73,13 +73,24 @@ export default function VendorBills() {
   const approveBill = async (id) => {
     try {
       const res = await api.post(`/api/ap/bills/${id}/approve`);
-      if (res.data.error) {
-          return alert(`⚠️ Approval Blocked: ${res.data.message}`);
-      }
       alert("✅ Bill Approved & Posted to Ledger");
       fetchData();
     } catch (err) {
-      alert("Failed to approve bill");
+      const errorMsg = err.response?.data?.message || "Failed to approve bill";
+      alert(`⚠️ Approval Blocked: ${errorMsg}`);
+    }
+  };
+
+  const resolveException = async (id) => {
+    const note = prompt("Please enter the resolution note (e.g. 'Manually verified via physical invoice'):");
+    if (!note) return;
+    
+    try {
+      await api.post(`/api/ap/bills/${id}/resolve`, { resolutionNote: note });
+      alert("✅ Exception Resolved. Bill is now Matched.");
+      fetchData();
+    } catch (err) {
+      alert("Failed to resolve exception");
     }
   };
 
@@ -179,6 +190,11 @@ export default function VendorBills() {
                        </div>
                     </td>
                     <td style={{ padding: '24px', textAlign: 'right' }}>
+                       {bill.status === 'Exception' && (
+                         <button onClick={() => resolveException(bill.id)} style={{ padding: '10px 20px', borderRadius: '8px', border: `1px solid ${theme.danger}`, background: '#fef2f2', color: theme.danger, fontWeight: '800', cursor: 'pointer', marginRight: '8px' }}>
+                            Resolve
+                         </button>
+                       )}
                        {bill.approvalStatus === 'Pending' ? (
                          <button onClick={() => approveBill(bill.id)} style={{ padding: '10px 20px', borderRadius: '8px', border: `1px solid ${theme.primary}`, background: '#eff6ff', color: theme.primary, fontWeight: '800', cursor: 'pointer' }}>
                             Run Approval

@@ -3,10 +3,25 @@ const xmlBuilder = require("./tally.xmlBuilder");
 const { prisma } = require("../lib/prisma");
 
 const addToSyncQueue = async (data) => {
+    // PRE-VALIDATION LAYER (Step 2)
+    if (!data.entityId || data.entityId === "Unknown") {
+        throw new Error("Validation Failed: Entity ID is required and cannot be 'Unknown'");
+    }
+
+    if (data.entityType === "invoice") {
+        if (!data.payload.customer && !data.payload.customerName) {
+            throw new Error("Validation Failed: Customer Name is required for Invoice sync");
+        }
+        if (parseFloat(data.payload.amount || data.payload.total || 0) <= 0) {
+            throw new Error("Validation Failed: Invoice amount must be greater than 0");
+        }
+    }
+
     return await prisma.syncQueue.create({
         data: {
             ...data,
-            status: "QUEUED"
+            status: "QUEUED",
+            maxRetries: 3 // production-grade limit
         }
     });
 };
@@ -191,11 +206,20 @@ const updateSyncStatus = async (entityId, entityType, status) => {
     });
 };
 
+const syncLedger = async (name, group) => {
+    return await addToSyncQueue({
+        entityType: "ledger",
+        entityId: name,
+        payload: { name, group }
+    });
+};
+
 module.exports = { 
     addToSyncQueue,
     pushSalesToTally, 
     syncPayment, 
     syncStock,
+    syncLedger,
     updateSyncStatus,
     fetchProfitLoss,
     fetchStockSummary,
