@@ -51,64 +51,70 @@ async function importCustomersFromTally() {
             // Extract values (Handle both string and object with attributes)
             const getVal = (field) => {
                 if (!field || !field[0]) return "";
-                return typeof field[0] === 'object' ? field[0]._ : field[0];
+                const val = typeof field[0] === 'object' ? field[0]._ : field[0];
+                return val ? val.toString().trim() : "";
             };
 
             const name = l.$.NAME || getVal(l.NAME);
             const parent = getVal(l.PARENT) || "";
 
-            // DEBUG: Log first 3 ledgers to see structure
-            if (i < 3) {
-                console.log(`[DEBUG] Ledger Structure for "${name}":`, JSON.stringify(l, null, 2));
-            }
-
             // Filter ONLY Sundry Debtors
-            if (!parent.trim().includes("Sundry Debtors")) {
+            if (!parent.includes("Sundry Debtors")) {
                 continue;
             }
 
-            console.log(`🔄 Syncing Customer: "${name}"...`);
+            console.log(`🔄 Syncing: "${name}"...`);
 
             try {
                 const customerData = {
                     name,
-                    billingAddress: getVal(l["ADDRESS.LIST"]?.[0]?.ADDRESS) || "",
-                    state: getVal(l.STATENAME) || "",
-                    gstNumber: getVal(l.GSTIN) || "",
+                    billingAddress: getVal(l["ADDRESS.LIST"]?.[0]?.ADDRESS),
+                    state: getVal(l.STATENAME),
+                    gstNumber: getVal(l.GSTIN),
                     tallySyncStatus: "SUCCESS",
                     tallyLastSyncedAt: new Date(),
                     tallySyncError: null,
                     status: "Active"
                 };
 
-                // UPSERT Logic (Production Grade)
-                await prisma.customer.upsert({
-                    where: { name: customerData.name },
-                    update: customerData,
-                    create: {
-                        ...customerData,
-                        customerType: "Tally Imported"
+                // UPSERT Logic (with Ledger Creation)
+                await prisma.$transaction(async (tx) => {
+                    const customer = await tx.customer.upsert({
+                        where: { name: customerData.name },
+                        update: customerData,
+                        create: {
+                            ...customerData,
+                            customerType: "Tally Imported"
+                        }
+                    });
+
+                    // Ensure Ledger exists
+                    const existingLedger = await tx.customerLedger.findUnique({
+                        where: { customerId: customer.id }
+                    });
+
+                    if (!existingLedger) {
+                        await tx.customerLedger.create({
+                            data: { customerId: customer.id }
+                        });
                     }
                 });
 
                 successCount++;
             } catch (err) {
-                console.error(`❌ Sync Failed for "${name}":`, err.message);
+                console.error(`❌ FAILED [${name}]:`, err); // THIS WILL SHOW THE FULL ERROR
                 failCount++;
                 
-                // Track Failure in DB if customer exists
                 try {
                     await prisma.customer.update({
                         where: { name },
                         data: {
                             tallySyncStatus: "FAILED",
-                            tallySyncError: err.message,
+                            tallySyncError: err.message.substring(0, 200),
                             tallyLastSyncedAt: new Date()
                         }
                     });
-                } catch (dbErr) {
-                    // Ignore if customer doesn't exist in DB yet
-                }
+                } catch (dbErr) { }
             }
         }
 

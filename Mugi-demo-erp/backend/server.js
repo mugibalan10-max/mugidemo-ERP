@@ -117,6 +117,7 @@ const financeRoutes = require("./routes/financeRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const apRoutes = require("./routes/apRoutes");
 const payrollRoutes = require("./routes/payrollRoutes");
+const quotationRoutes = require("./routes/quotationRoutes");
 
 // --- Route Mounting ---
 app.use("/api/auth", authRoutes);
@@ -136,6 +137,7 @@ app.use("/api/procurement", procurementRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/ap", apRoutes);
 app.use("/api/payroll", payrollRoutes);
+app.use("/api/quotations", quotationRoutes);
 
 // Start Background Workers
 require("./workers/tallySync.worker");
@@ -228,3 +230,4 @@ app.listen(PORT, () => {
 
 // restart nodemon trigger
 // HRMS architecture trigger
+ 

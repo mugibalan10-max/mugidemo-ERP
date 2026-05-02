@@ -97,7 +97,8 @@ export default function Customers() {
       if (err.response?.status === 403) {
         alert("🚨 ORDER BLOCKED: " + err.response.data.error);
       } else {
-        alert("Failed to process order. Ensure product ID 1 exists.");
+        const detail = err.response?.data?.details || err.response?.data?.error || err.message;
+        alert("🔴 Order Processing Failed: " + detail);
       }
     }
   };

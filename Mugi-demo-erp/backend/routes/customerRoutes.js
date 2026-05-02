@@ -156,8 +156,12 @@ router.post("/:id/orders", async (req, res) => {
       triggerCustomerEvent('ORDER_CONFIRMED', { orderId: order.id, customerId });
       res.status(201).json(order);
   } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to create sales order" });
+      console.error("❌ Order Processing Error:", err);
+      res.status(500).json({ 
+        error: "Failed to create sales order", 
+        details: err.message,
+        hint: "Ensure product ID 1 exists or check server logs." 
+      });
   }
 });
 

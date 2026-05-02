@@ -81,10 +81,10 @@ export default function Invoices() {
           
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
             <div>
-              <nav style={{ display: 'flex', gap: '8px', fontSize: '0.85rem', color: theme.textMuted, marginBottom: '8px', fontWeight: '700' }}>
+              <nav style={{ display: 'flex', gap: '8px', fontSize: 'var(--text-small)', color: theme.textMuted, marginBottom: '8px', fontWeight: 'var(--weight-semibold)' }}>
                  <span>Finance Module</span><span>/</span><span style={{ color: theme.primary }}>Sales Register</span>
               </nav>
-              <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: theme.textMain, margin: 0 }}>GST Invoices</h1>
+              <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--weight-semibold)', color: theme.textMain, margin: 0 }}>GST Invoices</h1>
               <p style={{ color: theme.textMuted, marginTop: '4px' }}>Tally/SAP Integrated billing, automated taxation, and strict credit enforcement.</p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -101,39 +101,39 @@ export default function Invoices() {
             <div style={{ padding: '24px', borderBottom: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between' }}>
                <h3 style={{ margin: 0, fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}><Calculator size={20} color={theme.primary} /> Sales Register (GST Compliant)</h3>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 'var(--text-body)' }}>
               <thead>
-                <tr style={{ background: theme.bg, color: theme.textMuted, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '20px 24px' }}>Voucher No</th>
-                  <th style={{ padding: '20px 24px' }}>Customer / GSTIN</th>
-                  <th style={{ padding: '20px 24px', textAlign: 'right' }}>Taxable Value</th>
-                  <th style={{ padding: '20px 24px', textAlign: 'right' }}>CGST / SGST</th>
-                  <th style={{ padding: '20px 24px', textAlign: 'right' }}>IGST</th>
-                  <th style={{ padding: '20px 24px', textAlign: 'right' }}>Total (₹)</th>
-                  <th style={{ padding: '20px 24px', textAlign: 'center' }}>Status</th>
+                <tr style={{ background: theme.bg, color: theme.textMuted, fontSize: 'var(--text-small)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '20px 24px', fontWeight: 'var(--weight-semibold)' }}>Voucher No</th>
+                  <th style={{ padding: '20px 24px', fontWeight: 'var(--weight-semibold)' }}>Customer / GSTIN</th>
+                  <th style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-semibold)' }}>Taxable Value</th>
+                  <th style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-semibold)' }}>CGST / SGST</th>
+                  <th style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-semibold)' }}>IGST</th>
+                  <th style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-semibold)' }}>Total (₹)</th>
+                  <th style={{ padding: '20px 24px', textAlign: 'center', fontWeight: 'var(--weight-semibold)' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.length === 0 && <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: theme.textMuted }}>No invoices found in the ledger.</td></tr>}
                 {invoices.map((inv, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid ${theme.border}`, transition: 'background 0.2s', ':hover': { background: '#f8fafc' } }}>
-                    <td style={{ padding: '20px 24px', fontWeight: '800', color: theme.textMain }}>{inv.invoiceNo}</td>
+                  <tr key={idx} style={{ borderBottom: `1px solid ${theme.border}`, transition: 'background 0.2s' }}>
+                    <td style={{ padding: '20px 24px', fontWeight: 'var(--weight-semibold)', color: theme.textMain }}>{inv.invoiceNo}</td>
                     <td style={{ padding: '20px 24px' }}>
-                       <p style={{ margin: 0, fontWeight: '700', color: theme.textMain }}>{inv.customerName}</p>
-                       <code style={{ fontSize: '0.75rem', color: theme.textMuted, background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{inv.gstin || 'URD'}</code>
+                       <p style={{ margin: 0, fontWeight: 'var(--weight-medium)', color: theme.textMain }}>{inv.customerName}</p>
+                       <code style={{ fontSize: 'var(--text-small)', color: theme.textMuted, background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{inv.gstin || 'URD'}</code>
                     </td>
-                    <td style={{ padding: '20px 24px', textAlign: 'right', fontWeight: '600' }}>{parseFloat(inv.taxableValue).toFixed(2)}</td>
-                    <td style={{ padding: '20px 24px', textAlign: 'right', color: theme.textMuted, fontSize: '0.85rem' }}>
+                    <td style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-medium)' }}>{parseFloat(inv.taxableValue).toFixed(2)}</td>
+                    <td style={{ padding: '20px 24px', textAlign: 'right', color: theme.textMuted, fontSize: 'var(--text-body)' }}>
                        {inv.cgst > 0 ? `${parseFloat(inv.cgst).toFixed(2)} / ${parseFloat(inv.sgst).toFixed(2)}` : '-'}
                     </td>
-                    <td style={{ padding: '20px 24px', textAlign: 'right', color: theme.textMuted, fontSize: '0.85rem' }}>
+                    <td style={{ padding: '20px 24px', textAlign: 'right', color: theme.textMuted, fontSize: 'var(--text-body)' }}>
                        {inv.igst > 0 ? parseFloat(inv.igst).toFixed(2) : '-'}
                     </td>
-                    <td style={{ padding: '20px 24px', textAlign: 'right', fontWeight: '800', color: theme.primary, fontSize: '1.1rem' }}>
+                    <td style={{ padding: '20px 24px', textAlign: 'right', fontWeight: 'var(--weight-bold)', color: theme.primary, fontSize: '1rem' }}>
                        ₹{parseFloat(inv.totalValue).toLocaleString()}
                     </td>
                     <td style={{ padding: '20px 24px', textAlign: 'center' }}>
-                       <span style={{ background: inv.status === 'Approved' ? '#10b98115' : '#ef444415', color: inv.status === 'Approved' ? theme.success : theme.danger, padding: '6px 12px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800' }}>
+                       <span style={{ background: inv.status === 'Approved' ? '#10b98115' : '#ef444415', color: inv.status === 'Approved' ? theme.success : theme.danger, padding: '6px 12px', borderRadius: '12px', fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)' }}>
                          {inv.status}
                        </span>
                     </td>

@@ -92,7 +92,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: theme.bg, fontFamily: '"Inter", sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: theme.bg }}>
       <Sidebar />
       <main style={{ flex: 1, padding: '32px', height: '100vh', overflowY: 'auto' }}>
         <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
@@ -100,7 +100,7 @@ export default function Dashboard() {
           {/* Header & Controls */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
             <div>
-              <h1 style={{ fontSize: '2rem', fontWeight: '900', color: theme.textMain, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <h1 style={{ fontSize: '2rem', fontWeight: 'var(--weight-semibold)', color: theme.textMain, margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Activity color={theme.secondary} size={32} /> Executive Dashboard
               </h1>
               <p style={{ color: theme.textMuted, margin: 0, fontSize: '1.05rem' }}>Real-time business intelligence and operational oversight.</p>
@@ -111,7 +111,7 @@ export default function Dashboard() {
                 <MapPin size={18} color={theme.textMuted} />
                 <select 
                   value={branchFilter} onChange={e => setBranchFilter(e.target.value)}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: '600', color: theme.textMain, cursor: 'pointer' }}
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: 'var(--weight-medium)', color: theme.textMain, cursor: 'pointer' }}
                 >
                   <option value="all">Global HQ (All Branches)</option>
                   <option value="1">Mumbai Branch</option>
@@ -123,7 +123,7 @@ export default function Dashboard() {
                 <Calendar size={18} color={theme.textMuted} />
                 <select 
                   value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-                  style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: '600', color: theme.textMain, cursor: 'pointer' }}
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: 'var(--weight-medium)', color: theme.textMain, cursor: 'pointer' }}
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
@@ -134,14 +134,14 @@ export default function Dashboard() {
 
               <button 
                 onClick={() => setAutoRefresh(!autoRefresh)}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', background: autoRefresh ? theme.success : 'white', color: autoRefresh ? 'white' : theme.textMain, border: `1px solid ${autoRefresh ? theme.success : theme.border}`, fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', background: autoRefresh ? theme.success : 'white', color: autoRefresh ? 'white' : theme.textMain, border: `1px solid ${autoRefresh ? theme.success : theme.border}`, fontWeight: 'var(--weight-bold)', cursor: 'pointer', transition: 'all 0.2s' }}
               >
                 <RefreshCw size={18} className={autoRefresh ? 'spin' : ''} /> Live
               </button>
 
               <button 
                 onClick={exportReport}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', background: theme.primary, color: 'white', border: 'none', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', background: theme.primary, color: 'white', border: 'none', fontWeight: 'var(--weight-bold)', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}
               >
                 <Download size={18} /> Export
               </button>
@@ -223,6 +223,24 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* CRM KPI */}
+                <div 
+                  onClick={() => navigate('/leads')}
+                  style={{ background: 'white', padding: '24px', borderRadius: '20px', border: `1px solid ${theme.border}`, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', gridColumn: 'span 4' }}
+                  className="kpi-card"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ background: '#fce7f3', padding: '12px', borderRadius: '12px', color: '#db2777' }}><Users size={24} /></div>
+                      <div>
+                        <div style={{ color: theme.textMuted, fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase' }}>CRM Pipeline</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '900', color: theme.textMain }}>Manage High-Value CRM Leads & Conversions</div>
+                      </div>
+                    </div>
+                    <button style={{ padding: '8px 20px', borderRadius: '10px', background: theme.primary, color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Open CRM</button>
+                  </div>
+                </div>
+
               </div>
 
               {/* Charts & Secondary Panels */}
@@ -231,8 +249,8 @@ export default function Dashboard() {
                 {/* Main Chart */}
                 <div style={{ background: 'white', padding: '24px', borderRadius: '20px', border: `1px solid ${theme.border}`, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ margin: '0 0 24px 0', fontSize: '1.2rem', fontWeight: '800', color: theme.textMain }}>Revenue vs Procurement (YTD)</h3>
-                  <div style={{ height: '350px' }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div style={{ height: '350px', width: '100%', minHeight: '350px' }}>
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                       <AreaChart data={salesChart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">

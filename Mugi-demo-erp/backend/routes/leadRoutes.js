@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
+const { protect, checkPermission } = require('../middleware/auth.middleware');
 
 // Helper for Automation & Alerts
 function fireLeadEvent(eventName, payload) {
@@ -8,28 +9,41 @@ function fireLeadEvent(eventName, payload) {
   console.log(`[CRM_EVENT: ${eventName}]`, payload);
 }
 
-// 1. LEAD CREATION (Manual, API, CSV logic wrapped here)
-router.post('/', async (req, res) => {
+// 1. LEAD CREATION (Manual, API, CSV logic)
+router.post('/', protect, async (req, res) => {
+  console.log("Creating lead with body:", req.body);
   try {
-    const { name, email, phone, company, source, status, tags, assignedTo } = req.body;
+    const { 
+      name, email, phone, company, source, status, tags, assignedTo,
+      budget, requirement, priority, isDecisionMaker, isQualified 
+    } = req.body;
+
+    if (!name) return res.status(400).json({ error: "Name is required" });
 
     // 8. DUPLICATE MANAGEMENT
     if (email || phone) {
       const existing = await prisma.lead.findFirst({
-        where: { OR: [ { email: email || '' }, { phone: phone || '' } ] }
+        where: { 
+          OR: [ 
+            email ? { email } : null, 
+            phone ? { phone } : null 
+          ].filter(Boolean)
+        }
       });
       if (existing) {
-        return res.status(409).json({ error: "Duplicate lead detected", leadId: existing.id });
+        return res.status(409).json({ error: "Duplicate lead detected: Email or Phone already exists." });
       }
     }
 
-    // 2. LEAD ASSIGNMENT ENGINE (Mocking auto-assignment round-robin if assignedTo is null)
-    let ownerId = assignedTo;
+    // 2. LEAD ASSIGNMENT ENGINE
+    let ownerId = assignedTo ? parseInt(assignedTo) : null;
     if (!ownerId) {
-      // Very simple Round-Robin simulation for load balancing
-      const employees = await prisma.employee.findMany({ select: { id: true } });
-      if (employees.length > 0) {
-        ownerId = employees[Math.floor(Math.random() * employees.length)].id;
+      const users = await prisma.user.findMany({ 
+        where: { role: { name: { equals: 'sales', mode: 'insensitive' } } },
+        select: { id: true } 
+      });
+      if (users.length > 0) {
+        ownerId = users[Math.floor(Math.random() * users.length)].id;
       }
     }
 
@@ -42,109 +56,84 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Defensive parsing for budget
+    const parsedBudget = budget && !isNaN(parseFloat(budget)) ? parseFloat(budget) : null;
+
     const lead = await prisma.lead.create({
       data: {
         name,
-        email,
-        phone,
-        company,
+        email: email || null,
+        phone: phone || null,
+        company: company || null,
         source: source || 'Manual',
         status: status || 'New',
+        budget: parsedBudget,
+        requirement: requirement || null,
+        priority: priority || 'Medium',
+        isDecisionMaker: !!isDecisionMaker,
+        isQualified: !!isQualified,
         tags: parsedTags,
-        assignedTo: ownerId ? parseInt(ownerId) : null
+        assignedTo: ownerId
       }
     });
 
-    // 7. AUTOMATION ENGINE (Triggers on lead creation)
+    // 15. AUTOMATION: Auto-create activity when lead is created
+    try {
+      await prisma.leadActivity.create({
+        data: {
+          leadId: lead.id,
+          type: 'Call',
+          notes: 'Initial lead creation & auto-assigned',
+          createdBy: req.user.id ? parseInt(req.user.id) : null
+        }
+      });
+    } catch (actErr) {
+      console.error("Non-fatal error creating initial activity:", actErr);
+    }
+
     if (ownerId) fireLeadEvent('LEAD_ASSIGNED', { leadId: lead.id, ownerId });
 
     res.status(201).json(lead);
   } catch (err) {
-    console.error("Lead creation error:", err);
-    res.status(500).json({ error: "Failed to create lead", details: err.message || err.toString() });
+    console.error("CRITICAL: Lead creation error:", err);
+    res.status(500).json({ error: "Failed to create lead", details: err.message });
   }
 });
 
-// BULK LEAD CREATION (For CSV / Array imports)
-router.post('/bulk', async (req, res) => {
+// GET Leads with Role-Based Filtering
+router.get('/', protect, async (req, res) => {
   try {
-    const leadsData = Array.isArray(req.body) ? req.body : [req.body];
-    const results = { successful: 0, failed: 0, errors: [] };
+    const { status, source, assignedTo, search } = req.query;
+    let where = {};
     
-    // Fetch active employees for round-robin assignment
-    const employees = await prisma.employee.findMany({ select: { id: true } });
-
-    for (const lead of leadsData) {
-      try {
-        if (!lead.name) throw new Error("Name is required");
-
-        // Duplicate Check
-        if (lead.email || lead.phone) {
-          const existing = await prisma.lead.findFirst({
-            where: { OR: [ { email: lead.email || '' }, { phone: lead.phone || '' } ] }
-          });
-          if (existing) {
-            results.failed++;
-            results.errors.push(`Duplicate skipped: ${lead.email || lead.phone}`);
-            continue;
-          }
-        }
-
-        // Round Robin Assignment
-        let ownerId = lead.assignedTo;
-        if (!ownerId && employees.length > 0) {
-          ownerId = employees[Math.floor(Math.random() * employees.length)].id;
-        }
-
-        // Tags parsing
-        let parsedTags = [];
-        if (lead.tags) {
-          try {
-            parsedTags = typeof lead.tags === 'string' ? JSON.parse(lead.tags) : lead.tags;
-          } catch (e) {
-            parsedTags = [lead.tags];
-          }
-        }
-
-        await prisma.lead.create({
-          data: {
-            name: lead.name,
-            email: lead.email,
-            phone: lead.phone,
-            company: lead.company,
-            source: lead.source || 'Manual',
-            status: lead.status || 'New',
-            tags: parsedTags,
-            assignedTo: ownerId ? parseInt(ownerId) : null
-          }
-        });
-        results.successful++;
-      } catch (err) {
-        results.failed++;
-        results.errors.push(`Failed for ${lead.name || 'Unknown'}: ${err.message}`);
-      }
+    // 16. ROLE-BASED ACCESS
+    // Sales can only see their leads. Admin/Manager can see all.
+    if (req.user.role?.toLowerCase() === 'sales') {
+      where.assignedTo = req.user.id;
+    } else if (assignedTo) {
+      where.assignedTo = parseInt(assignedTo);
     }
 
-    res.status(201).json({ message: "Bulk import completed", results });
-  } catch (err) {
-    console.error("Bulk Import Error:", err);
-    res.status(500).json({ error: "Failed to process bulk import" });
-  }
-});
-
-// GET Leads with 10. REPORTS & DASHBOARD pipeline support
-router.get('/', async (req, res) => {
-  try {
-    const { status, source, assignedTo } = req.query;
-    let where = {};
     if (status) where.status = status;
     if (source) where.source = source;
-    if (assignedTo) where.assignedTo = parseInt(assignedTo);
+    
+    // 10. SEARCH & FILTER
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+        { company: { contains: search, mode: 'insensitive' } }
+      ];
+    }
 
     const leads = await prisma.lead.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { activities: true }
+      include: { 
+        assignedUser: { select: { id: true, name: true } },
+        activities: { orderBy: { createdAt: 'desc' }, take: 5 }
+      }
     });
     res.json(leads);
   } catch (err) {
@@ -152,59 +141,123 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Update Lead / 3. LEAD PIPELINE (Drag and Drop Status Change)
-router.patch('/:id', async (req, res) => {
+// GET Single Lead Detail
+router.get('/:id', protect, async (req, res) => {
   try {
     const leadId = parseInt(req.params.id);
-    const { status, assignedTo, scoreDelta } = req.body;
-    
-    let dataToUpdate = {};
-    const oldLead = await prisma.lead.findUnique({ where: { id: leadId } });
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      include: {
+        assignedUser: { select: { id: true, name: true, email: true } },
+        activities: { 
+          orderBy: { createdAt: 'desc' },
+          include: { creator: { select: { name: true } } }
+        },
+        notes: { orderBy: { createdAt: 'desc' } },
+        contacts: true,
+        customers: true,
+        quotations: { orderBy: { createdAt: 'desc' } }
+      }
+    });
 
-    if (status) dataToUpdate.status = status;
-    if (assignedTo) dataToUpdate.assignedTo = parseInt(assignedTo);
-    if (scoreDelta) dataToUpdate.score = { increment: parseInt(scoreDelta) };
+    if (!lead) return res.status(404).json({ error: "Lead not found" });
+    
+    // Security check for Sales
+    if (req.user.role === 'Sales' && lead.assignedTo !== req.user.id) {
+      return res.status(403).json({ error: "Access denied to this lead" });
+    }
+
+    res.json(lead);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch lead details" });
+  }
+});
+
+// Update Lead / Pipeline Change
+router.patch('/:id', protect, async (req, res) => {
+  try {
+    const leadId = parseInt(req.params.id);
+    const { 
+      status, assignedTo, budget, requirement, priority, 
+      isDecisionMaker, isQualified, lostReason 
+    } = req.body;
+    
+    const oldLead = await prisma.lead.findUnique({ where: { id: leadId } });
+    if (!oldLead) return res.status(404).json({ error: "Lead not found" });
+
+    // 5. LEAD QUALIFICATION LOGIC
+    if (status === 'Proposal' && !oldLead.isQualified && !isQualified) {
+      return res.status(400).json({ error: "Cannot move to Proposal without being Qualified" });
+    }
+
+    // 8. LOST MANAGEMENT
+    if (status === 'Lost' && !lostReason) {
+      return res.status(400).json({ error: "Lost reason is mandatory for Lost status" });
+    }
+
+    let dataToUpdate = {
+      status,
+      budget: budget ? parseFloat(budget) : undefined,
+      requirement,
+      priority,
+      isDecisionMaker,
+      isQualified,
+      lostReason,
+      assignedTo: assignedTo ? parseInt(assignedTo) : undefined
+    };
 
     const lead = await prisma.lead.update({
       where: { id: leadId },
       data: dataToUpdate
     });
 
-    // 7. AUTOMATION ENGINE: On stage change notify manager
+    // 15. AUTOMATION: Conversion on WON
+    if (status === 'Won' && oldLead.status !== 'Won') {
+      await convertLeadToCustomer(leadId, req.user.id);
+    }
+
     if (status && status !== oldLead.status) {
       fireLeadEvent('STAGE_CHANGE', { leadId, oldStatus: oldLead.status, newStatus: status });
+      // Log as activity
+      await prisma.leadActivity.create({
+        data: {
+          leadId,
+          type: 'Follow-up',
+          notes: `Status changed from ${oldLead.status} to ${status}`,
+          createdBy: req.user.id
+        }
+      });
     }
 
     res.json(lead);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to update lead" });
   }
 });
 
-// 4. ACTIVITY MANAGEMENT (Log calls, emails, meetings)
-router.post('/:id/activities', async (req, res) => {
+// 2. ACTIVITY MANAGEMENT
+router.post('/:id/activities', protect, async (req, res) => {
   try {
-    const { type, description, scheduledAt, completed } = req.body;
+    const { type, notes, nextFollowupDate } = req.body;
     const leadId = parseInt(req.params.id);
 
     const activity = await prisma.leadActivity.create({
       data: {
         leadId,
-        type, // 'Call', 'Email', 'Meeting'
-        description,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        completed: completed === true
+        type, // Call, WhatsApp, Email, Meeting, Follow-up
+        notes,
+        nextFollowupDate: nextFollowupDate ? new Date(nextFollowupDate) : null,
+        createdBy: req.user.id
       }
     });
 
-    // 5. LEAD SCORING SYSTEM: Auto score calculation
-    let scoreBoost = 0;
-    if (type === 'Email') scoreBoost = 2;
-    if (type === 'Call') scoreBoost = 5;
-    if (type === 'Meeting') scoreBoost = 10;
-    
-    if (scoreBoost > 0) {
-      await prisma.lead.update({ where: { id: leadId }, data: { score: { increment: scoreBoost } }});
+    // Update Lead's Next Follow-up Date
+    if (nextFollowupDate) {
+      await prisma.lead.update({
+        where: { id: leadId },
+        data: { nextFollowupDate: new Date(nextFollowupDate) }
+      });
     }
 
     res.status(201).json(activity);
@@ -213,102 +266,97 @@ router.post('/:id/activities', async (req, res) => {
   }
 });
 
-// 13. NOTES & ATTACHMENTS
-router.post('/:id/notes', async (req, res) => {
-  try {
-    const { content, createdBy } = req.body;
-    const note = await prisma.leadNote.create({
-      data: {
-        leadId: parseInt(req.params.id),
-        content,
-        createdBy: createdBy ? parseInt(createdBy) : null
-      }
-    });
-    res.status(201).json(note);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to add note" });
-  }
-});
-
-// 6. LEAD CONVERSION (Convert -> Opportunity/Customer)
-router.post('/:id/convert', async (req, res) => {
-  try {
-    const leadId = parseInt(req.params.id);
-    const { expectedValue, closeDate } = req.body;
-
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-    if (!lead) return res.status(404).json({ error: "Lead not found" });
-
-    // 1. Check or Create Customer Account
-    let customer = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { email: lead.email ? { equals: lead.email, mode: 'insensitive' } : undefined },
-          { phone: lead.phone ? { equals: lead.phone } : undefined }
-        ].filter(Boolean)
-      }
-    });
-
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          name: lead.company || lead.name,
-          email: lead.email,
-          phone: lead.phone
-        }
-      });
+// 7. LEAD CONVERSION LOGIC (Internal Function)
+async function convertLeadToCustomer(leadId, userId) {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  
+  // Check for existing customer by email, phone or name to avoid unique constraint errors
+  let customer = await prisma.customer.findFirst({
+    where: {
+      OR: [
+        { name: lead.name },
+        lead.email ? { email: lead.email } : null,
+        lead.phone ? { phone: lead.phone } : null
+      ].filter(Boolean)
     }
+  });
 
-    // 2. Auto create or update Opportunity (Deal)
-    const opportunity = await prisma.opportunity.upsert({
-      where: { leadId },
-      update: {
-        customerId: customer.id,
-        value: parseFloat(expectedValue || 0),
-        expectedCloseDate: closeDate ? new Date(closeDate) : null
-      },
-      create: {
-        leadId,
-        customerId: customer.id,
-        value: parseFloat(expectedValue || 0),
-        stage: 'Proposal Sent',
-        expectedCloseDate: closeDate ? new Date(closeDate) : null
+  if (!customer) {
+    // Create Customer if not exists
+    customer = await prisma.customer.create({
+      data: {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        companyName: lead.company,
+        customerType: 'Individual',
+        status: 'Active',
+        leadId: lead.id
       }
     });
-
-    // 3. Mark Lead as Converted (Setting status to 'Won' or 'Qualified')
-    await prisma.lead.update({
-      where: { id: leadId },
-      data: { status: 'Won' }
+  } else {
+    // Link existing customer to this lead if not already linked
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: { leadId: lead.id }
     });
-
-    fireLeadEvent('LEAD_CONVERTED', { leadId, opportunityId: opportunity.id, customerId: customer.id });
-
-    res.status(201).json({ customer, opportunity });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to convert lead" });
   }
-});
 
-// 10. REPORTS & DASHBOARD
-router.get('/reports/dashboard', async (req, res) => {
+  // Check for existing contact
+  let contact = await prisma.contact.findFirst({
+    where: {
+      AND: [
+        { name: lead.name },
+        { customerId: customer.id }
+      ]
+    }
+  });
+
+  if (!contact) {
+    // Create Contact
+    contact = await prisma.contact.create({
+      data: {
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        customerId: customer.id,
+        leadId: lead.id
+      }
+    });
+  }
+
+  fireLeadEvent('LEAD_CONVERTED', { leadId, contactId: contact.id, customerId: customer.id });
+  return { contact, customer };
+}
+
+// 9. DASHBOARD & ANALYTICS
+router.get('/reports/dashboard', protect, async (req, res) => {
   try {
-    const [totalLeads, wonLeads, sourceStats] = await Promise.all([
-      prisma.lead.count(),
-      prisma.lead.count({ where: { status: 'Won' } }),
-      prisma.lead.groupBy({ by: ['source'], _count: { source: true } })
+    // Role-based stats
+    const where = req.user.role === 'Sales' ? { assignedTo: req.user.id } : {};
+
+    const [totalLeads, wonLeads, lostLeads, stageStats, sourceStats, salesPerformance] = await Promise.all([
+      prisma.lead.count({ where }),
+      prisma.lead.count({ where: { ...where, status: 'Won' } }),
+      prisma.lead.count({ where: { ...where, status: 'Lost' } }),
+      prisma.lead.groupBy({ by: ['status'], _count: { status: true }, where }),
+      prisma.lead.groupBy({ by: ['source'], _count: { source: true }, where }),
+      prisma.lead.groupBy({ by: ['assignedTo'], _count: { id: true }, where: { status: 'Won' } })
     ]);
 
-    const conversionRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(2) : 0;
+    const conversionRate = totalLeads > 0 ? ((wonLeads / totalLeads) * 100).toFixed(1) : 0;
 
     res.json({
       totalLeads,
       wonLeads,
+      lostLeads,
       conversionRate: `${conversionRate}%`,
-      leadsBySource: sourceStats.map(s => ({ source: s.source, count: s._count.source }))
+      stageStats: stageStats.map(s => ({ stage: s.status, count: s._count.status })),
+      sourceStats: sourceStats.map(s => ({ source: s.source, count: s._count.source })),
+      salesPerformance: salesPerformance.map(s => ({ userId: s.assignedTo, wins: s._count.id }))
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to generate report" });
   }
 });
