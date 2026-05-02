@@ -161,13 +161,12 @@ export default function Dashboard() {
                   style={{ background: 'white', padding: '24px', borderRadius: '20px', border: `1px solid ${theme.border}`, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                   className="kpi-card"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ background: '#dbeafe', padding: '12px', borderRadius: '12px', color: '#1d4ed8' }}><TrendingUp size={24} /></div>
-                    <span style={{ padding: '4px 12px', background: '#dcfce7', color: '#166534', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '800' }}>+12.5%</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Sales</div>
+                    <span style={{ padding: '4px 12px', background: '#dcfce7', color: '#166534', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 'var(--weight-bold)' }}>+12.5%</span>
                   </div>
-                  <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Sales</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: '900', color: theme.textMain, marginTop: '4px' }}>₹{summary?.sales?.totalAmount?.toLocaleString() || 0}</div>
-                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'var(--weight-bold)', color: theme.textMain, marginTop: '4px' }}>₹{summary?.sales?.totalAmount?.toLocaleString() || 0}</div>
+                  <div style={{ marginTop: '16px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
                     <span>{summary?.sales?.invoiceCount || 0} Invoices</span>
                     <span style={{ color: theme.danger }}>₹{summary?.sales?.pendingReceivables?.toLocaleString() || 0} AR</span>
                   </div>
@@ -179,12 +178,9 @@ export default function Dashboard() {
                   style={{ background: 'white', padding: '24px', borderRadius: '20px', border: `1px solid ${theme.border}`, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                   className="kpi-card"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ background: '#fef3c7', padding: '12px', borderRadius: '12px', color: '#b45309' }}><ShoppingBag size={24} /></div>
-                  </div>
-                  <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Purchases</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: '900', color: theme.textMain, marginTop: '4px' }}>₹{summary?.purchases?.totalAmount?.toLocaleString() || 0}</div>
-                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Purchases</div>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'var(--weight-bold)', color: theme.textMain, marginTop: '4px' }}>₹{summary?.purchases?.totalAmount?.toLocaleString() || 0}</div>
+                  <div style={{ marginTop: '16px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
                     <span>{summary?.purchases?.billCount || 0} Bills</span>
                     <span style={{ color: theme.danger }}>₹{summary?.purchases?.pendingPayables?.toLocaleString() || 0} AP</span>
                   </div>
@@ -196,13 +192,12 @@ export default function Dashboard() {
                   style={{ background: 'white', padding: '24px', borderRadius: '20px', border: `1px solid ${theme.border}`, cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
                   className="kpi-card"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ background: '#f3e8ff', padding: '12px', borderRadius: '12px', color: '#7e22ce' }}><FileText size={24} /></div>
-                    {(summary?.inventory?.lowStockItems > 0) && <span style={{ padding: '4px 12px', background: '#fee2e2', color: '#991b1b', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '800' }}>{summary?.inventory?.lowStockItems} Low</span>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inventory Value</div>
+                    {(summary?.inventory?.lowStockItems > 0) && <span style={{ padding: '4px 12px', background: '#fee2e2', color: '#991b1b', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 'var(--weight-bold)' }}>{summary?.inventory?.lowStockItems} Low</span>}
                   </div>
-                  <div style={{ color: theme.textMuted, fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Inventory Value</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: '900', color: theme.textMain, marginTop: '4px' }}>₹{summary?.inventory?.totalStockValue?.toLocaleString() || 0}</div>
-                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'var(--weight-bold)', color: theme.textMain, marginTop: '4px' }}>₹{summary?.inventory?.totalStockValue?.toLocaleString() || 0}</div>
+                  <div style={{ marginTop: '16px', fontSize: '0.85rem', color: theme.textMuted, display: 'flex', justifyContent: 'space-between' }}>
                     <span>Live Stock Valuation</span>
                   </div>
                 </div>
@@ -213,12 +208,9 @@ export default function Dashboard() {
                   style={{ background: theme.primary, padding: '24px', borderRadius: '20px', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 10px 15px -3px rgba(15, 23, 42, 0.3)' }}
                   className="kpi-card"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '12px', color: 'white' }}><CreditCard size={24} /></div>
-                  </div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Net Profit / Loss</div>
-                  <div style={{ fontSize: '2.2rem', fontWeight: '900', color: 'white', marginTop: '4px' }}>₹{summary?.finance?.profitLoss?.toLocaleString() || 0}</div>
-                  <div style={{ marginTop: '12px', fontSize: '0.85rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Net Profit / Loss</div>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'var(--weight-bold)', color: 'white', marginTop: '4px' }}>₹{summary?.finance?.profitLoss?.toLocaleString() || 0}</div>
+                  <div style={{ marginTop: '16px', fontSize: '0.85rem', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
                     <span>Cash Bal: ₹{summary?.finance?.cashAndBank?.toLocaleString() || 0}</span>
                   </div>
                 </div>
@@ -230,14 +222,11 @@ export default function Dashboard() {
                   className="kpi-card"
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ background: '#fce7f3', padding: '12px', borderRadius: '12px', color: '#db2777' }}><Users size={24} /></div>
-                      <div>
-                        <div style={{ color: theme.textMuted, fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase' }}>CRM Pipeline</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '900', color: theme.textMain }}>Manage High-Value CRM Leads & Conversions</div>
-                      </div>
+                    <div>
+                      <div style={{ color: theme.textMuted, fontSize: '0.8rem', fontWeight: 'var(--weight-semibold)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CRM Pipeline</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'var(--weight-bold)', color: theme.textMain, marginTop: '4px' }}>Manage High-Value CRM Leads & Conversions</div>
                     </div>
-                    <button style={{ padding: '8px 20px', borderRadius: '10px', background: theme.primary, color: 'white', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Open CRM</button>
+                    <button style={{ padding: '12px 24px', borderRadius: '12px', background: theme.primary, color: 'white', border: 'none', fontWeight: 'var(--weight-bold)', cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)' }}>Open CRM Pipeline</button>
                   </div>
                 </div>
 

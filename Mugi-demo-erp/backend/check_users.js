@@ -1,18 +1,19 @@
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-const { Pool } = require("pg");
-require("dotenv").config();
-
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const { prisma } = require('./lib/prisma');
 
 async function main() {
-  const roles = await prisma.role.findMany();
-  console.log('Roles:', JSON.stringify(roles, null, 2));
-  const users = await prisma.user.findMany({ include: { role: true } });
-  console.log('Users:', JSON.stringify(users.map(u => ({ id: u.id, name: u.name, role: u.role.name })), null, 2));
+  const users = await prisma.user.findMany({
+    include: {
+      role: true
+    }
+  });
+  console.log('--- USERS IN DB ---');
+  users.forEach(u => {
+    console.log(`Name: ${u.name}, Email: ${u.email}, Role: ${u.role?.name}`);
+  });
+  process.exit(0);
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

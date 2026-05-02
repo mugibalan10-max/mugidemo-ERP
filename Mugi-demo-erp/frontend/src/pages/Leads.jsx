@@ -183,28 +183,24 @@ export default function Leads() {
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' }}>
             <div style={{ ...kpiCard, background: 'white' }}>
-              <div style={{ background: '#4f46e515', color: theme.primary, ...iconBox }}><Users size={20} /></div>
               <div>
                 <p style={kpiLabel}>Total Pipeline</p>
                 <h3 style={kpiValue}>{dashboard.totalLeads}</h3>
               </div>
             </div>
             <div style={{ ...kpiCard, background: 'white' }}>
-              <div style={{ background: '#10b98115', color: theme.success, ...iconBox }}><Award size={20} /></div>
               <div>
                 <p style={kpiLabel}>Conversion Rate</p>
                 <h3 style={kpiValue}>{dashboard.conversionRate}</h3>
               </div>
             </div>
             <div style={{ ...kpiCard, background: 'white' }}>
-              <div style={{ background: '#f59e0b15', color: theme.warning, ...iconBox }}><Zap size={20} /></div>
               <div>
                 <p style={kpiLabel}>Won Deals</p>
                 <h3 style={kpiValue}>{dashboard.wonLeads}</h3>
               </div>
             </div>
             <div style={{ ...kpiCard, background: 'white' }}>
-              <div style={{ background: '#ef444415', color: theme.danger, ...iconBox }}><XCircle size={20} /></div>
               <div>
                 <p style={kpiLabel}>Lost Leads</p>
                 <h3 style={kpiValue}>{dashboard.lostLeads}</h3>
